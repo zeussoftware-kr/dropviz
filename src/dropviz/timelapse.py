@@ -4,6 +4,7 @@ Built locally from git only (commits, merge times, verification notes). A featur
   done         the newest change merged by the end of that day has a verification record dated by then
   in-progress  work on it existed by then that was not merged yet
   unknown      otherwise
+  (absent)     no commit on any branch touched its paths yet: the feature is not drawn on that day
 The last frame is replaced by the real current statuses, so the replay always ends on today's map. Claims have no
 history in git, so earlier frames show no claim rings."""
 import datetime
@@ -134,8 +135,14 @@ def frames(root, state=None, now=None):
                 anyt, ft = reach.get(latest, (inf, {}))
                 if min(anyt, ft.get(f["id"], inf)) <= T:
                     st = "d"
+            if st != "d" and merged and state.get("done_rule", "strict") != "strict":
+                newest = max(mt for c, mt in merged)   # git-only rules: merged, and no newer unmerged work
+                if not any(ct <= T and ct > newest and (mt is None or mt > T) for c, ct, mt in mine):
+                    st = "d"
             if st != "d" and pending:
                 st = "p"
+            if st == "u" and not merged:
+                st = "x"                      # no commit touches it yet: it does not exist on this day
             cur[f["id"]] = st
             s[f["id"]] = st
             done += st == "d"
@@ -152,6 +159,7 @@ def state_at(state, frame):
     name = {"d": "done", "p": "in-progress", "u": "unknown"}
     fs = []
     for f in state["features"]:
-        g = dict(f, status=name[frame["s"].get(f["id"], "u")], claim=None)
-        fs.append(g)
+        code = frame["s"].get(f["id"], "u")
+        # a feature with no commit yet keeps its slot (the map keeps its shape) but is drawn empty
+        fs.append(dict(f, status=name.get(code, "unknown"), claim=None, absent=(code == "x")))
     return dict(state, features=fs)

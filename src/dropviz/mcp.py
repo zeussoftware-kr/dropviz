@@ -78,7 +78,14 @@ class Server:
                 ranking, total = tokens_mod.ranking(state["features"], tk, fm), tokens_mod.summary(tk)["total"]
             except Exception:
                 models, ranking, total = {}, None, None
-            return {"repo": state["name"], "default_branch": state["default_branch"], "counts": state["counts"],
+            try:
+                from . import trailers
+                trs = trailers.summarize(self.root, state)
+                from_trailers = {m: {"commits": e["commits"], "lines": round(e["lines"])} for m, e in trs["by_model"].items()}
+            except Exception:
+                from_trailers = {}
+            return {"repo": state["name"], "done_rule": state.get("done_rule"), "models_from_git_trailers": from_trailers,
+                    "default_branch": state["default_branch"], "counts": state["counts"],
                     "rule": i18n.t(self.lang, "mcp.rule"), "areas": core.area_tree_out(state["areas"]),
                     "working_now": working, "models_tokens": models, "model_ranking": ranking, "tokens_total": total,
                     "features": [{k: f[k] for k in ("id", "name", "area", "status", "why", "claim", "reported_done")}

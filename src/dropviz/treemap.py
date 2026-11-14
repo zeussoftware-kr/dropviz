@@ -1,12 +1,12 @@
 """Treemap layout and painting for the map page. Pure functions: state in, rectangles out.
 
 Hierarchy: areas (nested to any depth) holding feature tiles. The size rule (`size_by`) and the view (progress, parts, now,
-priority, speed, risk, attention) change sizes and colours only. The status of a feature always comes from git
+priority, speed, risk, attention, models) change sizes and colours only. The status of a feature always comes from git
 evidence (core.compute); a tile also carries a stripe in its status colour in every view, and the "done" colour
 is used for nothing else."""
 import time
 
-from . import defaults, i18n
+from . import defaults, i18n, trailers
 
 D = defaults.data()
 VIEWS = tuple(D["views"])
@@ -259,17 +259,24 @@ def paint(view, f, fx, ctx, lang, area_idx, maxw, maxscore, maxspeed):
         lv = fx["risk"]
         fill = {3: VC["risk_red"], 2: VC["risk_orange"], 1: VC["risk_yellow"], 0: IDLE}[lv]
         return fill, ", ".join(fx["risk_why"]) or t(lang, "risk_none")
+    if view == "models":
+        tr = ctx.get("trailers") or {}
+        ent = (tr.get("features") or {}).get(f["id"])
+        if not ent:
+            return IDLE, t(lang, "models_none")
+        sh = trailers.shares(ent)
+        return tr["colors"][sh[0][0]], ", ".join("%s %d%%" % (m, round(100 * x)) for m, x in sh[:4])
     if view == "attention":
         s = fx["score"]
         return (_mix(IDLE, VC["attention"], s / maxscore) if s else IDLE), "%s %d" % (t(lang, "score"), s)
     return IDLE, ""
 
 
-def legend(view, lang, size_by):
+def legend(view, lang, size_by, ctx=None):
     P = lambda *a: [{"fill": f, "label": t(lang, k)} for f, k in a]
     S = STATUS_FILL
     if view == "progress":
-        items = P((S["done"], "done"), (S["in-progress"], "in-progress"), (S["unknown"], "unknown"), (S["planned"], "planned"))
+        items = P((S["done"], "done" if (ctx or {}).get("done_rule", "strict") == "strict" else "done_git"), (S["in-progress"], "in-progress"), (S["unknown"], "unknown"), (S["planned"], "planned"))
     elif view == "parts":
         items = P((PALETTE[0], "parts_l"))
     elif view == "now":
@@ -280,8 +287,17 @@ def legend(view, lang, size_by):
         items = P((VC["speed"], "speed_l"), (IDLE, "speed_none"))
     elif view == "risk":
         items = P((VC["risk_red"], "risk_red"), (VC["risk_orange"], "risk_orange"), (VC["risk_yellow"], "risk_yellow"), (IDLE, "risk_none"))
+    elif view == "models":
+        tr = (ctx or {}).get("trailers") or {"colors": {}, "by_model": {}}
+        top = [m for m in sorted(tr["by_model"], key=lambda m: (-tr["by_model"][m]["lines"], m)) if m in tr["colors"]]
+        items = [{"fill": tr["colors"][m], "label": m} for m in top[:trailers.T["max_legend"]]]
+        if len(top) > trailers.T["max_legend"]:
+            items.append({"fill": VC["models_other"], "label": trailers.T["other_label"]})
+        items += [{"fill": IDLE, "label": t(lang, "models_none")}, {"fill": "", "label": t(lang, "models_src")}]
     else:
         items = P((VC["attention"], "att"), (IDLE, "att_none"))
+    if view == "progress":
+        items.append({"fill": "", "label": t(lang, "rule_" + (ctx or {}).get("done_rule", "strict"))})
     items.append({"fill": "", "label": t(lang, "size_" + size_by if view == "progress" else "size_view_" + view)})
     items += P(("", "claimed"), ("", "unverified"))
     if view != "progress":
@@ -289,10 +305,18 @@ def legend(view, lang, size_by):
     return items
 
 
-def figure(view, lang, leaves):
+def figure(view, lang, leaves, ctx=None):
     """Header figure of a region from its leaves [(kind, f, fx)]."""
     n = len(leaves)
     real = [(f, x) for k, f, x in leaves if k == "f"]
+    if view == "models":
+        feats = ((ctx or {}).get("trailers") or {}).get("features") or {}
+        acc = {}
+        for f, _ in real:
+            for m, e in (feats.get(f["id"]) or {}).items():
+                acc[m] = acc.get(m, 0.0) + e["lines"]
+        sh = trailers.shares({m: {"lines": v, "commits": v} for m, v in acc.items()}) if acc else []
+        return "%s %d%%" % (sh[0][0], round(100 * sh[0][1])) if sh else ""
     if view == "progress":
         return "%d%%" % round(100.0 * sum(1 for f, _ in real if f["status"] == "done") / n) if n else ""
     if view == "parts":
@@ -314,6 +338,7 @@ def layout(state, w, h, view="progress", focus="", ctx=None, lang="en", size_by=
     -> {"w","h","view","size_by","focus","crumbs","nodes":[...],"legend":[...],"stats":{...}}"""
     ctx = dict(ctx or {})
     ctx.setdefault("now", time.time())
+    ctx.setdefault("done_rule", state.get("done_rule", "strict"))
     if view not in VIEWS:
         view = "progress"
     size_by = size_by or state.get("size_by") or "features"
@@ -343,14 +368,22 @@ def layout(state, w, h, view="progress", focus="", ctx=None, lang="en", size_by=
                               "status": "planned", "fill": STATUS_FILL["planned"], "stripe": "", "lines": [],
                               "label": "", "tip": t(lang, "planned")})
                 continue
+            if f.get("absent"):   # replay: no commit touches it yet, so the slot is drawn empty
+                nodes.append({"key": "x:" + f["id"], "kind": "planned", "x": lx, "y": ly, "w": lw, "h": lh,
+                              "status": "planned", "fill": STATUS_FILL["planned"], "stripe": "", "lines": [],
+                              "label": "", "tip": t(lang, "not_yet")})
+                continue
             x_ = fx[f["id"]]
             fill, tip = paint(view, f, x_, ctx, lang, root_i, maxw, maxscore, maxspeed)
             n = {"key": "f:" + f["id"], "kind": "feature", "id": f["id"], "x": lx, "y": ly, "w": lw, "h": lh,
                  "status": f["status"], "fill": fill, "stripe": STATUS_FILL[f["status"]], "tip": tip,
                  "lines": wrap2(f["name"], lw, lh), "claimed": bool(f.get("claim")),
                  "unverified": f["status"] != "done" and f["evidence"].get("merged_commits", 0) > 0}
+            if view == "models" and (ctx.get("trailers") or {}).get("features", {}).get(f["id"]):
+                n["bands"] = [{"fill": ctx["trailers"]["colors"][m], "frac": round(x, 4)}
+                              for m, x in trailers.shares(ctx["trailers"]["features"][f["id"]])]
             if model:
-                n["model_hit"] = model in (mdl.get(f["id"]) or {})
+                n["model_hit"] = model in (mdl.get(f["id"]) or {}) or model in ((ctx.get("trailers") or {}).get("features", {}).get(f["id"]) or {})
             if live.get(f["id"]):
                 n["live"] = live[f["id"]]
             nodes.append(n)
@@ -359,7 +392,7 @@ def layout(state, w, h, view="progress", focus="", ctx=None, lang="en", size_by=
         hdr = (L["hdr_top"] if top else L["hdr_1"] if a["depth"] == 1 else L["hdr_n"]) if h >= (L["min_h_top"] if top else L["min_h"]) and w >= L["min_w"] else 0
         nodes.append({"key": "a:" + a["name"], "kind": "area", "depth": a["depth"], "name": a["name"], "x": x, "y": y, "w": w,
                       "h": h, "hdr": hdr, "fill": L["hdr_fill_top"] if top else _mix(L["hdr_fill"], PALETTE[root_i % len(PALETTE)], L["tint"] / (1 + L["tint_decay"] * (a["depth"] - 1))),
-                      "label": fit("%s %s" % (a["name"], figure(view, lang, lv(a))), w, L["top_char_width"] if top else None) if hdr else ""})
+                      "label": fit("%s %s" % (a["name"], figure(view, lang, lv(a), ctx)), w, L["top_char_width"] if top else None) if hdr else ""})
         pad = L["pad_top"] if top else L["pad"]
         x0, y0, w0, h0 = x + pad, y + hdr + (1 if hdr else pad), w - 2 * pad, h - hdr - (pad + 1 if hdr else 2 * pad)
         items = [(k["size"], ("a", k)) for k in a["children"]]
@@ -394,7 +427,7 @@ def layout(state, w, h, view="progress", focus="", ctx=None, lang="en", size_by=
             n[k] = round(n[k], 1)
     tiles = [n for n in nodes if n["kind"] in ("feature", "planned")]
     return {"w": w, "h": h, "view": view, "size_by": size_by, "rule": rule, "focus": focus, "crumbs": crumbs, "nodes": nodes,
-            "legend": legend(view, lang, size_by),
+            "legend": legend(view, lang, size_by, ctx),
             "stats": {"features": sum(1 for n in tiles if n["kind"] == "feature"),
                       "planned": sum(1 for n in tiles if n["kind"] == "planned")}}
 

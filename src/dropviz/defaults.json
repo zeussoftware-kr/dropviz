@@ -6,7 +6,8 @@
   "priority",
   "speed",
   "risk",
-  "attention"
+  "attention",
+  "models"
  ],
  "size_rules": [
   "features",
@@ -53,7 +54,8 @@
   "risk_red": "#e5484d",
   "risk_orange": "#f0883e",
   "risk_yellow": "#d9b13b",
-  "attention": "#d36bd6"
+  "attention": "#d36bd6",
+  "models_other": "#7d8798"
  },
  "thresholds": {
   "stale_branch_days": 7,
@@ -341,5 +343,105 @@
   "backup_suffix": ".dropviz-backup-",
   "offered_marker": "connect-offered"
  },
- "machine_name": ""
+ "machine_name": "",
+ "model_palette": [
+  "#4f9bff",
+  "#ff9f43",
+  "#c06cf0",
+  "#2ec4b6",
+  "#f25f7a",
+  "#e5c13d",
+  "#8ac926",
+  "#ff7eb6"
+ ],
+ "trailer": {
+  "keys": [
+   "co-authored-by",
+   "assisted-by",
+   "generated-by",
+   "co-developed-by"
+  ],
+  "always_ai_keys": [
+   "assisted-by",
+   "generated-by"
+  ],
+  "generated_with": "^\\s*(?:\\U0001F916\\s*)?generated\\s+(?:with|by)\\s+\\[?([A-Za-z][\\w .\\-]*?)\\]?\\s*(?:\\(|$)",
+  "grep": "co-authored-by|co-developed-by|assisted-by|generated-by|generated (with|by)",
+  "models": [
+   {
+    "re": "claude[\\s_\\-]*(opus|sonnet|haiku|fable)[\\s_\\-]*(\\d+(?:[._\\-]\\d+)?)(?:[\\s_\\-]*\\d{8})?",
+    "name": "Claude \\1 \\2"
+   },
+   {
+    "re": "claude[\\s_\\-]*(\\d+(?:[._\\-]\\d+)?)[\\s_\\-]*(opus|sonnet|haiku)(?:[\\s_\\-]*\\d{8})?",
+    "name": "Claude \\2 \\1"
+   },
+   {
+    "re": "claude[\\s_\\-]*(opus|sonnet|haiku|fable)",
+    "name": "Claude \\1"
+   },
+   {
+    "re": "claude[\\s_\\-]*code",
+    "name": "Claude Code"
+   },
+   {
+    "re": "claude",
+    "name": "Claude"
+   },
+   {
+    "re": "gpt[\\s_\\-]*(\\d+(?:[._]\\d+)?)(?:[\\s_\\-]*(codex|mini|nano|pro|terra|sol|astra))?",
+    "name": "GPT-\\1 \\2"
+   },
+   {
+    "re": "(?:openai[\\s_\\-]+)?codex",
+    "name": "Codex"
+   },
+   {
+    "re": "gemini[\\s_\\-]*(\\d+(?:[._]\\d+)?)?(?:[\\s_\\-]*(pro|flash|ultra|nano))?(?:[\\s_\\-]*cli)?",
+    "name": "Gemini \\1 \\2"
+   },
+   {
+    "re": "(?:qwen|deepseek|glm|kimi|grok|llama|mistral)[\\s_\\-]*[\\w.\\-]*",
+    "name": "\\g<0>"
+   },
+   {
+    "re": "opencode",
+    "name": "OpenCode"
+   },
+   {
+    "re": "(?:github[\\s_\\-]+)?copilot",
+    "name": "Copilot"
+   },
+   {
+    "re": "cursor(?:[\\s_\\-]+agent)?",
+    "name": "Cursor"
+   },
+   {
+    "re": "aider(?:[\\s_\\-]*\\(.*\\))?",
+    "name": "Aider"
+   },
+   {
+    "re": "devin(?:[\\s_\\-]*ai)?",
+    "name": "Devin"
+   }
+  ],
+  "unnamed_label": "no model named",
+  "other_label": "others",
+  "max_legend": 8,
+  "max_models_ui": 40
+ },
+ "done_rules": [
+  "strict",
+  "merged",
+  "merged+ci"
+ ],
+ "done_rule": "strict",
+ "github": {
+  "api": "https://api.github.com",
+  "max_calls_anonymous": 40,
+  "max_calls_token": 400,
+  "timeout_seconds": 10,
+  "cache_file": "github-checks.json",
+  "stop_below_remaining": 3
+ }
 }

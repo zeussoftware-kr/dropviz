@@ -59,7 +59,7 @@ When you like it, give the map your own shape: open **Settings** on the page (or
 
 ## What it reads
 
-Only your repo's git history, an optional `dropviz.yaml`, and, if you want models and tokens, local records of AI tools (counts, timestamps, folder, branch, model name; never message text). It writes only to `.dropviz/` (git-ignored). The page is served on 127.0.0.1 only. Limits: status needs verification records (git notes or `ci-status.json`) to show anything as done; model and token data exist only where local transcripts survive; no GitHub/GitLab connection yet.
+Only your repo's git history (commit messages included, for model names in trailers), an optional `dropviz.yaml`, and, if you want models and tokens, local records of AI tools (counts, timestamps, folder, branch, model name; never message text). It writes only to `.dropviz/` (git-ignored). The page is served on 127.0.0.1 only. Limits: by default status needs verification records (git notes or `ci-status.json`) to show anything as done (two opt-in git-only rules exist, see "The honesty rule"); token data exist only where local transcripts survive, while model names also come from commit trailers; GitHub checks are read only if you choose the `merged+ci` rule.
 
 ## What you see
 
@@ -67,14 +67,15 @@ Only your repo's git history, an optional `dropviz.yaml`, and, if you want model
   other areas (the breadcrumb shows the depth, for example `Core > Library > Thumbnails`). A **feature** is one tile.
   A **card** is a piece of work on a feature; cards are listed when you open a feature (who did it, which model, state).
 - **Zoom** into any area and back (click its title, `Esc` goes up). Search box, legend, works on a phone.
-- **Seven views** of the same map (bottom bar): **Progress** (done share), **Parts** (what is where), **Now** (what is being worked on),
+- **Eight views** of the same map (bottom bar): **Progress** (done share), **Parts** (what is where), **Now** (what is being worked on),
   **Priority** (your weights), **Speed** (verified work per week), **Risk** (red CI, idle branches and claims, merges nobody verified),
-  **Attention** (most touched; counted on this computer only). Every tile keeps a stripe in its real status colour in every view.
+  **Attention** (most touched; counted on this computer only), **Models** (which model built what, from commit trailers). Every tile keeps a stripe in its real status colour in every view.
 - **What sets the size**, your choice in Settings: number of features (planned ones included, so the whole map is the whole plan),
   a weight you give each area, or work so far (commits). The size rule never changes a status.
 - **Planned** counts: say an area will end up with about 40 features and the missing ones show as grey "planned" placeholders. They are counted apart and are never "done".
 - **Replay** (the play button): the history replays day by day, tiles lighting up in order, with a scrubber and 1x / 4x speed.
   `dropviz timelapse --out demo.gif` (or `.mp4`) renders it to a file; `--out map.png` saves the current map. Needs a headless browser (Playwright or Chrome) and ffmpeg for GIF/MP4. Files stay local.
+- **Which model built what, from git alone:** the model names written in commit trailers (`Co-Authored-By`, `Assisted-By`, "Generated with"; names only, never e-mail addresses) give commits, changed lines and first/last date per model, per feature and per area, and colour the **Models** view. Shown as "from git trailers", not as a measurement; tokens stay "?" without local records. Details and the name table: [docs/TRAILERS.md](docs/TRAILERS.md).
 - **Who built it:** human or AI tool (from `Co-Authored-By` trailers), the exact **model** when local transcripts exist
   (Claude Code, Codex, OpenCode records; counts only), a model filter on the map, and a **model ranking** panel
   (verified features per model, tokens per verified feature; counts only, with "not enough data" under 5 features).
@@ -88,7 +89,7 @@ Only your repo's git history, an optional `dropviz.yaml`, and, if you want model
 
 ![One feature: why it has its status, its cards, models, verification record](docs/screenshots/feature.png)
 
-| Risk view | Working now | Models | Settings |
+| Risk view | Working now | Models tab | Settings |
 |---|---|---|---|
 | ![risk](docs/screenshots/risk.png) | ![working](docs/screenshots/working.png) | ![models](docs/screenshots/models.png) | ![settings](docs/screenshots/settings.png) |
 
@@ -102,6 +103,7 @@ On a phone: ![phone](docs/screenshots/phone.png)
 - **unknown** (grey) = no evidence. Every feature starts here. Merged but not yet verified stays unknown (dotted tile).
 - A claim or a report from an AI session **never** changes a status. Only git evidence does.
 - The size rule, the view and the replay change sizes and colours, never what counts as done.
+- Opt-in, for repos that keep no verification records: `--done merged` (merged, no newer unmerged work, no failing check) or `--done merged+ci` (also the commit's checks passed, read from `.dropviz/ci-status.json` or, for a GitHub `origin`, from the GitHub API: read only, public repos need no token, cached and capped). The legend always names the rule in use; the default stays strict. See [docs/TRAILERS.md](docs/TRAILERS.md).
 
 A verification record is a git note your CI writes after the tests pass:
 
@@ -189,13 +191,25 @@ pipx install git+https://github.com/zeussoftware-kr/dropviz.git
 dropviz https://github.com/storytold/photocraft      # history only, kept in a cache folder; about a minute here
 ```
 
-![Replay of the PhotoCraft history in the Attention view: the busiest parts of the code light up](docs/example-photocraft.gif)
+![Replay of the PhotoCraft history in the Models view: each tile fills with bands, one per model](docs/example-photocraft.gif)
 
-*15 seconds, 46 days of history (Attention view): size and colour follow how much each folder was worked on ([MP4](docs/example-photocraft.mp4)).*
+*12 seconds, 46 days of history (Models view). A feature is drawn only from the day of its first commit; before that its slot is empty. Colour bands = each model's share of the changed lines, read from the commit trailers (not measured; tokens are unknown). [MP4](docs/example-photocraft.mp4).*
 
-- DropViz drafted 38 features from the folders. In this view the biggest tiles are `crates/ui-egui`, `crates/engine`, `crates/io` and `crates/algo`: the folders with the most commits.
-- No tile is **done**: "done" needs a verification record (a git note written by CI, see "The honesty rule"), and this repo has none, so 0 of 3,602 merged units count as verified. Green stripes in the Progress view mean unmerged work exists on a branch. DropViz does not guess from other signs.
-- The header says "0 tokens" and the Models panel is empty because DropViz reads token counts and models from local AI-tool records on your computer, and a repo you only cloned has none. The co-author trailers are counted separately for "human or AI tool".
+The same repo in four views (each answers one question):
+
+| | |
+|---|---|
+| ![Progress view](docs/screenshots/pc-progress.png) | ![Models view](docs/screenshots/pc-models.png) |
+| **Progress: where are we?** Bright green = merged (this example uses `--done merged`, because the repo keeps no verification records; the legend says so). Dotted = unmerged work exists. | **Models: which model built what?** Bands = share of changed lines per model, from commit trailers. Grey = no model named in the commits. |
+| ![Now view](docs/screenshots/pc-now.png) | ![Attention view](docs/screenshots/pc-attention.png) |
+| **Now: where is work open?** Blue = work on a branch that is not merged yet. | **Attention: where did the effort go?** Size and colour follow how much each folder was touched. |
+
+- DropViz drafted 62 features from the folders and the README headings.
+- 5,056 of the 13,115 commits on the default branch name a model in a trailer (21 different names). One model, `Claude Opus 5.5`, accounts for 90% of the changed lines and 4,348 commits; the rest is spread over smaller shares. Counting rules and the name table: [docs/TRAILERS.md](docs/TRAILERS.md). These are names written into commits, not measurements.
+- Tokens show as "?" because token counts come only from local AI-tool records on your computer, and a repo you only cloned has none.
+- With the default strict rule no tile is **done**: "done" needs a verification record (a git note written by CI, see "The honesty rule"), and this repo has none. Run `dropviz <repo> --done merged` for the git-only rule shown above.
+- The Speed view needs verification records too, so it is not shown here (every tile would read 0 per week).
+- Parsing the trailers of this 13,115-commit history takes about 5 seconds (one `git log` call).
 - It also ran on [openclaw/openclaw](https://github.com/openclaw/openclaw) (MIT; 2,794 AI co-author trailers in 128,567 commits), but its history is too large to replay in minutes here, so no replay is shown.
 
 ## Status of this project
@@ -276,10 +290,11 @@ dropviz /tmp/kestrel
 - **영역 / 기능 / 카드.** 위에서 아래까지 낱말은 셋입니다. **영역**은 지도의 한 덩어리이고 기능과 다른 영역을 담을 수 있습니다(깊이는 `Core > Library > Thumbnails` 처럼 경로로 보임).
   **기능**은 타일 하나, **카드**는 기능 안의 일 하나입니다(기능을 열면 누가, 어느 모델이, 어떤 상태인지 나옵니다).
 - 영역을 눌러 안으로 들어가고(`Esc` 로 나옴), 찾기·범례가 있고, 폰에서도 됩니다.
-- 같은 지도를 보는 **일곱 화면**(아래 줄): 진척도 · 부품 · 지금 · 중요도 · 속도 · 위험 · 관심. 어느 화면에서도 타일 왼쪽 띠는 진짜 상태 색입니다.
+- 같은 지도를 보는 **여덟 화면**(아래 줄): 진척도 · 부품 · 지금 · 중요도 · 속도 · 위험 · 관심 · 모델(커밋 꼬리말로 보는 「누가 무엇을 만들었나」). 어느 화면에서도 타일 왼쪽 띠는 진짜 상태 색입니다.
 - **크기 기준**은 설정에서 고릅니다: 기능 수(계획한 것 포함) · 내가 정한 가중치 · 지금까지 한 일(커밋). 크기 기준은 상태를 바꾸지 않습니다.
 - **계획** 개수: 영역이 끝나면 기능이 대략 40개라고 적으면 모자란 만큼 회색 "계획" 칸이 보입니다. 따로 세고, 절대 "됨"이 아닙니다.
 - **다시 보기**(재생 단추): 역사를 하루씩 돌려 타일이 차례로 켜집니다. `dropviz timelapse --out demo.gif`(또는 `.mp4`, `.png`)로 파일을 만듭니다. 파일은 내 컴퓨터에만 남습니다.
+- **git 만으로 보는 모델:** 커밋 꼬리말(`Co-Authored-By`, `Assisted-By`, "Generated with")에 적힌 모델 이름(이름만, 이메일은 버림)으로 모델별 커밋·바뀐 줄·처음/마지막 날짜를 기능·영역마다 보이고 **모델** 화면을 칠합니다. 「git 꼬리말에서」라고 표시하며 측정값이 아닙니다. 토큰은 로컬 기록이 없으면 `?`. 자세히: [docs/TRAILERS.md](docs/TRAILERS.md).
 - **누가 만들었나**: 사람인지 AI 도구인지(`Co-Authored-By`), 내 컴퓨터에 기록이 있으면 정확한 **모델**, 모델 필터, **모델 순위**(수만 셈, 5개 미만이면 "자료 부족").
   알 수 없으면 "모델 모름"으로 둡니다.
 - **지금 일하는 중**: 어떤 도구·모델이 어느 기능·가지·컴퓨터에서 언제부터 일하는지(30분 넘게 조용하면 "멈춤"). 5초마다 새로 고칩니다. 대화 내용은 읽지 않습니다.
@@ -291,6 +306,7 @@ dropviz /tmp/kestrel
 - **done(됨)** = 그 기능의 커밋이 기본 브랜치에 병합되었고, 가장 최근 병합 변경 이후에 검증 기록이 있을 때만.
 - **in-progress** = 다른 가지에 병합 안 된 작업이 있음. **unknown(회색)** = 근거 없음(병합됐지만 검증 전이면 점무늬).
 - AI 세션의 「맡음」·「했음」 보고는 상태를 **바꾸지 않습니다**. git 근거만 바꿉니다. 크기 기준·화면·다시 보기도 상태를 바꾸지 않습니다.
+- 선택 사항(검증 기록을 두지 않는 저장소용): `--done merged`(병합, 더 새로운 미병합 작업 없음, 실패한 검사 없음) 또는 `--done merged+ci`(그 커밋의 검사 통과까지; `.dropviz/ci-status.json` 이나 GitHub `origin` 이면 GitHub API 를 읽기만, 공개 저장소는 토큰 불필요, 저장·횟수 제한). 범례에 쓰는 규칙이 늘 적히며 기본은 엄격 규칙입니다. [docs/TRAILERS.md](docs/TRAILERS.md).
 
 검증 기록은 시험이 통과한 뒤 CI 가 적는 git note 입니다:
 
@@ -325,11 +341,23 @@ pipx install git+https://github.com/zeussoftware-kr/dropviz.git
 dropviz https://github.com/storytold/photocraft      # 역사만 받아 캐시 폴더에 둠, 여기서는 약 1분
 ```
 
-![PhotoCraft 역사를 관심 화면으로 다시 보기: 가장 바쁜 부분이 켜집니다](docs/example-photocraft.gif)
+![PhotoCraft 역사를 모델 화면으로 다시 보기: 타일이 모델별 띠로 채워집니다](docs/example-photocraft.gif)
 
-*15초, 46일치 역사(관심 화면): 크기와 색은 각 폴더에 일이 얼마나 있었는지를 따릅니다([MP4](docs/example-photocraft.mp4)).*
+*12초, 46일치 역사(모델 화면). 기능은 첫 커밋 날부터 그려지고 그 전에는 빈 칸입니다. 색 띠 = 모델별로 바꾼 줄의 비율, 커밋 꼬리말에서 읽은 값(측정값 아님, 토큰은 모름). [MP4](docs/example-photocraft.mp4).*
 
-- 폴더로 기능 38개 초안을 만들었습니다. 이 화면에서 가장 큰 타일은 `crates/ui-egui`, `crates/engine`, `crates/io`, `crates/algo` 로, 커밋이 가장 많은 폴더입니다.
-- **됨**인 타일은 없습니다. "됨"에는 검증 기록(CI 가 적는 git note, 「정직 규칙」 참고)이 필요한데 이 저장소엔 없어서 병합 3,602개 중 0개만 검증으로 셉니다. 진행 중 화면의 초록 띠는 가지에 병합 안 된 작업이 있다는 뜻입니다.
-- 맨 위 토큰이 0 이고 모델 칸이 비어 있는 것은, DropViz 가 토큰·모델을 내 컴퓨터의 AI 도구 기록에서 읽는데 내려받기만 한 저장소에는 그 기록이 없기 때문입니다. 공동 작성자 표시는 「사람인지 AI 도구인지」 칸에서 따로 셉니다.
+같은 저장소를 네 화면으로(화면마다 묻는 것이 하나씩):
+
+| | |
+|---|---|
+| ![진행 화면](docs/screenshots/pc-progress.png) | ![모델 화면](docs/screenshots/pc-models.png) |
+| **진행: 어디까지 왔나?** 밝은 초록 = 병합됨(이 예시는 검증 기록이 없는 저장소라 `--done merged` 를 썼고 범례에 적혀 있음). 점무늬 = 병합 안 된 작업 있음. | **모델: 어느 모델이 무엇을 만들었나?** 띠 = 모델별 바뀐 줄의 비율(커밋 꼬리말). 회색 = 커밋에 모델 이름 없음. |
+| ![지금 화면](docs/screenshots/pc-now.png) | ![관심 화면](docs/screenshots/pc-attention.png) |
+| **지금: 어디에 열린 작업이 있나?** 파랑 = 아직 병합 안 된 가지의 작업. | **관심: 힘이 어디에 들어갔나?** 크기와 색이 폴더를 얼마나 만졌는지를 따릅니다. |
+
+- 폴더와 README 제목으로 기능 62개 초안을 만들었습니다.
+- 기본 브랜치 커밋 13,115개 중 5,056개가 꼬리말에 모델 이름을 적었습니다(서로 다른 이름 21개). `Claude Opus 5.5` 하나가 바뀐 줄의 90%, 커밋 4,348개이고 나머지는 작은 비율로 나뉩니다. 세는 법과 이름 표: [docs/TRAILERS.md](docs/TRAILERS.md). 커밋에 적힌 이름이며 측정값이 아닙니다.
+- 토큰은 "?" 입니다. 토큰은 내 컴퓨터의 AI 도구 기록에서만 읽는데 내려받기만 한 저장소에는 없기 때문입니다.
+- 기본 엄격 규칙에서는 **됨**인 타일이 없습니다. "됨"에는 검증 기록(CI 가 적는 git note, 「정직 규칙」 참고)이 필요한데 이 저장소엔 없습니다. 위 화면의 git 만 쓰는 규칙은 `dropviz <저장소> --done merged` 입니다.
+- 속도 화면도 검증 기록이 필요해서(모든 타일이 주당 0) 여기에는 싣지 않았습니다.
+- 커밋 13,115개짜리 역사의 꼬리말을 읽는 데 약 5초 걸립니다(`git log` 한 번).
 - [openclaw/openclaw](https://github.com/openclaw/openclaw) (MIT, 커밋 128,567개 중 AI 공동 작성자 표시 2,794개)에도 돌려 보았지만 역사가 너무 커서 몇 분 안에 다시 보기를 만들 수 없어 영상은 싣지 않았습니다.

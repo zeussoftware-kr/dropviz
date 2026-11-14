@@ -91,7 +91,7 @@ function paintStatic(){
  const v=$("views");v.innerHTML="";S.cfg.views.forEach(id=>{const b=el("button",id===S.view?"on":"",T("map."+id));b.onclick=()=>{S.view=id;paintStatic();refresh(true)};v.appendChild(b)});
  const tb=$("tabs");tb.innerHTML="";["detail","now","models","commits"].forEach(id=>{const b=el("button",id===S.tab?"on":"",T("page.tab_"+id));b.onclick=()=>{S.tab=id;paintStatic();paintPane()};tb.appendChild(b)});
  $("play").title=T("page.play");paintBc();if(S.layout)paintLegend()}
-function paintTok(){const s=S.tokens&&S.tokens.summary;$("tok").textContent=s?T("page.tokens_total",{n:nf(s.total)}):"";
+function paintTok(){const s=S.tokens&&S.tokens.summary;$("tok").textContent=s?(s.total?T("page.tokens_total",{n:nf(s.total)}):T("page.tokens_unknown")):"";
  if(s)$("tok").title=T("page.tokens_split",{in:nf(s.input),out:nf(s.output),cr:nf(s.cache_read),cw:nf(s.cache_write)})}
 function paintBc(){const b=$("bc");b.innerHTML="";const a=el("a","",T("page.all"));a.onclick=()=>zoom("");b.appendChild(a);
  ((S.layout&&S.layout.crumbs)||[]).forEach(c=>{b.appendChild(el("i","","›"));const x=el("a","",c.name);x.onclick=()=>zoom(c.name);b.appendChild(x)})}
@@ -107,6 +107,7 @@ function place(g,n,a){g.setAttribute("transform","translate("+a.x+","+a.y+")");c
   if(g._st){const sw=Math.min(3,Math.max(1,a.w*0.2));g._st.setAttribute("x",gap);g._st.setAttribute("y",gap);g._st.setAttribute("width",sw);g._st.setAttribute("height",Math.max(0,a.h-1))}
   if(g._dots){g._dots.setAttribute("x",gap);g._dots.setAttribute("y",gap);g._dots.setAttribute("width",Math.max(0,a.w-1));g._dots.setAttribute("height",Math.max(0,a.h-1))}
   if(g._pl){g._pl.setAttribute("x",gap);g._pl.setAttribute("y",gap);g._pl.setAttribute("width",Math.max(0,a.w-1));g._pl.setAttribute("height",Math.max(0,a.h-1))}
+  if(g._bands){let bx=0;const bw=Math.max(0,a.w-1);g._bands.forEach(r=>{const w=bw*r._f;r.setAttribute("x",gap+bx);r.setAttribute("y",gap);r.setAttribute("width",Math.max(0,w));r.setAttribute("height",Math.max(0,a.h-1));bx+=w})}
   if(g._tx)g._tx.setAttribute("x",Math.min(3,a.w*0.2)+3)}
  if(g._hd){g._hd.setAttribute("width",Math.max(0,a.w));g._hd.setAttribute("height",n.hdr||0)}}
 function mk(n){const g=svg("g",{});g.dataset.key=n.key;
@@ -124,6 +125,7 @@ function style(g,n){g._n=n;const k=n.kind;
  if(k==="area"){g._hd.setAttribute("fill",n.fill);g._tx.textContent=n.label||"";g._tx.setAttribute("y",Math.max(9,(n.hdr||12)/2+3));g._hd.style.display=n.hdr?"":"none";return}
  g._bg.setAttribute("fill",n.fill);
  if(k==="planned")return;
+ (g._bands||[]).forEach(r=>r.remove());g._bands=(n.bands||[]).map(b=>{const r=svg("rect",{fill:b.fill});r._f=b.frac;g.insertBefore(r,g._st);return r});
  g._st.setAttribute("fill",n.stripe);g._dots.style.display=n.unverified?"":"none";
  g._bg.setAttribute("stroke",n.claimed?"#fff":"none");g._bg.setAttribute("stroke-width",n.claimed?1.2:0);
  const L=n.lines||[];g._tx.textContent="";L.forEach((s,i)=>{const t=svg("tspan",{x:Math.min(3,n.w*0.2)+3,dy:i?11:0});t.textContent=s;g._tx.appendChild(t)});
@@ -148,7 +150,7 @@ function draw(lay,animate){S.layout=lay;const root=$("root"),seen=new Set(),from
   if(k<1)anim=requestAnimationFrame(step)}
  step(t0);paintBc();paintLegend()}
 function tip(e,n){if(!n)return;const f=S.fmap&&S.fmap[n.id];let s="";
- if(n.kind==="planned")s=T("map.planned");else{s=(f?f.name:n.id)+"\n"+T("map."+n.status)+(n.tip&&n.view!=="progress"?"\n"+n.tip:"");
+ if(n.kind==="planned")s=n.tip||T("map.planned");else{s=(f?f.name:n.id)+"\n"+T("map."+n.status)+(n.tip&&n.view!=="progress"?"\n"+n.tip:"");
   if(f)s+="\n"+f.area;if(n.live)s+="\n"+T("page.working_by",{model:n.live.model})+(n.live.stalled?" ("+T("page.stalled")+")":"");}
  const t=$("tip");t.textContent=s;t.style.display="block";t.style.left=Math.min(innerWidth-360,e.clientX+14)+"px";t.style.top=Math.min(innerHeight-90,e.clientY+14)+"px"}
 
@@ -161,6 +163,7 @@ function zoom(name){S.focus=name;refresh(true)}
 async function loadAll(){S.state=await api("api/state");S.fmap={};S.state.features.forEach(f=>S.fmap[f.id]=f);
  $("repo").textContent=S.state.name;document.title="DropViz - "+S.state.name;
  api("api/metrics?lang="+S.lang).then(m=>{S.metrics=m;paintPane()}).catch(()=>{});
+ api("api/trailers").then(t=>{S.trail=t;paintPane();if(S.view==="models")refresh(false)}).catch(()=>{});
  api("api/tokens").then(t=>{S.tokens=t;S.models=t.models||null;paintTok();paintPane()}).catch(()=>{});
  await liveTick(false);await refresh(false)}
 async function liveTick(redraw){try{S.live=await api("api/live")}catch(e){}if(S.tab==="now")paintPane();if(redraw&&S.frame===null&&!S.playing)refresh(false)}
@@ -186,6 +189,7 @@ function paneDetail(p){const f=S.fmap[S.sel];if(!f){p.appendChild(el("div","mut"
   const r=el("div","row");r.appendChild(el("span","",c.subject));const st=el("span","mut",who+(m?" · "+Object.keys(m).join(", "):(c.kind==="ai"?" · "+T("page.unknown_model"):""))+" · "+(f.status==="done"?T("map.done_short"):T("page.merged")));r.appendChild(st);p.appendChild(r)});
  ev.unmerged_branches.forEach(b=>{const r=el("div","row");r.appendChild(el("span","",b.branch));r.appendChild(el("span","mut",T("page.open_branch",{n:nf(b.commits),when:ago(b.last)})));p.appendChild(r)});
  if(!ev.commits.length&&!ev.unmerged_branches.length)p.appendChild(el("div","mut",T("page.no_cards")));
+ const ft=S.trail&&S.trail.features&&S.trail.features[f.id];if(ft){p.appendChild(el("h4","",T("page.trailer_here")));trailLines(p,ft,true)}
  const fm=S.models&&S.models.features&&S.models.features[f.id];
  if(fm){p.appendChild(el("h4","",T("page.models_here")));Object.keys(fm).forEach(m=>{const c=fm[m];const r=el("div","row clk");r.appendChild(el("span","",m));r.appendChild(el("span","mut",nf(c.input+c.cache_read+c.cache_write+c.output)+" "+T("page.tokens")));r.onclick=()=>{S.model=S.model===m?"":m;refresh(false)};p.appendChild(r)})}
  const e=S.metrics&&S.metrics.eta.find(x=>x.feature===f.id);if(e){p.appendChild(el("h4","",T("page.eta")));p.appendChild(el("div","",(e.eta?df(e.eta)+" · ":"")+e.why))}
@@ -201,7 +205,17 @@ function paneNow(p){const w=S.live;p.appendChild(el("h4","",T("page.working_now"
 function chart(p,ser){const W=300,H=60,pts=ser.filter(x=>x.cumulative!==null),mx=Math.max(1,...pts.map(x=>x.cumulative));const sv=svg("svg",{width:W,height:H+4,viewBox:"0 0 "+W+" "+(H+4)});
  let run=[];const flush=()=>{if(run.length>1)sv.appendChild(svg("polyline",{points:run.join(" "),fill:"none",stroke:"#8fd9a8","stroke-width":1.5}));run=[]};
  ser.forEach((x,i)=>{const px=(i*(W-2)/Math.max(1,ser.length-1)+1).toFixed(1);if(x.cumulative===null){flush();sv.appendChild(svg("rect",{x:px-1,y:0,width:2,height:H,fill:"#3a3d46"}));return}run.push(px+","+(H-(H-4)*x.cumulative/mx).toFixed(1))});flush();p.appendChild(sv)}
-function paneModels(p){const sm=S.tokens&&S.tokens.summary;if(sm){p.appendChild(el("h4","",T("page.tokens_chart")));p.appendChild(el("div","mut",T("page.tokens_split",{in:nf(sm.input),out:nf(sm.output),cr:nf(sm.cache_read),cw:nf(sm.cache_write)})));chart(p,sm.series);p.appendChild(el("div","mut",T("page.tokens_gap")))}
+const dstr=t=>t?new Date(t*1000).toISOString().slice(0,10):"?";
+function trailLines(p,ents,filterable){const tot=Object.values(ents).reduce((a,e)=>a+e.lines,0)||1;
+ Object.keys(ents).sort((a,b)=>ents[b].lines-ents[a].lines).forEach(k=>{const e=ents[k];const r=el("div","row"+(filterable?" clk":""));r.appendChild(el("span",k===S.model?"live":"",k));
+  r.appendChild(el("span","mut",T("page.trailer_line",{commits:nf(e.commits),lines:nf(Math.round(e.lines)),first:dstr(e.first),last:dstr(e.last)})));
+  if(filterable)r.onclick=()=>{S.model=S.model===k?"":k;paintPane();refresh(false)};p.appendChild(r);
+  const b=el("div","bar");const i=el("i");i.style.width=(100*e.lines/tot)+"%";b.appendChild(i);p.appendChild(b)})}
+function paneModels(p){const tr=S.trail;p.appendChild(el("h4","",T("page.trailer_h")));
+ if(!tr||!Object.keys(tr.by_model).length)p.appendChild(el("div","mut",tr?T("page.trailer_none"):"…"));
+ else{p.appendChild(el("div","mut",T("page.trailer_note")));p.appendChild(el("div","mut",T("page.trailer_cover",{n:nf(tr.commits_with_model),total:nf(tr.commits_total||0)})));trailLines(p,tr.by_model,true)}
+ p.appendChild(el("h4","",T("page.measured_h")));
+ const sm=S.tokens&&S.tokens.summary;if(!sm||!sm.total)p.appendChild(el("div","mut",T("page.measured_none")));if(sm&&sm.total){p.appendChild(el("h4","",T("page.tokens_chart")));p.appendChild(el("div","mut",T("page.tokens_split",{in:nf(sm.input),out:nf(sm.output),cr:nf(sm.cache_read),cw:nf(sm.cache_write)})));chart(p,sm.series);p.appendChild(el("div","mut",T("page.tokens_gap")))}
  const rk=S.tokens&&S.tokens.ranking;if(rk){p.appendChild(el("h4","",T("page.ranking")));p.appendChild(el("div","mut",T("page.rank_note")));rk.rows.forEach(r=>{const d=el("div","");d.style.margin="0 0 6px";
   d.appendChild(el("div","",r.model===null?T("page.rank_norecord"):r.model));d.appendChild(el("div","mut",T("page.rank_line",{credit:nf(Math.round(r.credit*10)/10),share:nf(Math.round(r.share*100))})+(r.model===null?"":" \u00b7 "+(r.enough?T("page.rank_tpf",{n:nf(Math.round(r.tokens_per_feature))}):T("page.rank_few",{min:rk.min_features})))));p.appendChild(d)})}
  p.appendChild(el("h4","",T("page.models")));const m=S.models;if(!m){p.appendChild(el("div","mut","…"));return}

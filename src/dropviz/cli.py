@@ -80,21 +80,28 @@ def offer_connect():
         run_connect()
 
 
+def add_done(p):
+    p.add_argument("--done", choices=defaults.data()["done_rules"], help=_t("help_done"))
+
+
 def build_parser():
     ap = argparse.ArgumentParser(prog="dropviz", description=_t("description"))
     ap.add_argument("--version", action="version", version="dropviz " + __version__)
     ap.add_argument("--lang", help=_t("help_lang"))
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("init", help=_t("help_init"))
+    add_done(p)
     p.add_argument("repo", nargs="?", default=".")
     p.add_argument("--force", action="store_true", help=_t("help_force"))
     p.add_argument("--kind", help=_t("help_kind"))
     p.add_argument("--no-ask", action="store_true", help=_t("help_no_ask"))
     p = sub.add_parser("serve", help=_t("help_serve"))
+    add_done(p)
     p.add_argument("repo", nargs="?", default=".")
     p.add_argument("--port", type=int, default=None)
     p.add_argument("--open", action="store_true", help=_t("help_open"))
     p = sub.add_parser("mcp", help=_t("help_mcp"))
+    add_done(p)
     p.add_argument("repo", nargs="?", default=".")
     p = sub.add_parser("tokens", help=_t("help_tokens"))
     p.add_argument("repo", nargs="?", default=".")
@@ -105,18 +112,21 @@ def build_parser():
     p.add_argument("--json", action="store_true", help=_t("help_json"))
     p.add_argument("--write-notes", action="store_true", help=_t("help_notes"))
     p = sub.add_parser("metrics", help=_t("help_metrics"))
+    add_done(p)
     p.add_argument("repo", nargs="?", default=".")
     p.add_argument("--tokens", action="store_true", help=_t("help_metrics_tokens"))
     p.add_argument("--since", help=_t("help_since"))
     p.add_argument("--config", help=_t("help_config"))
     p.add_argument("--json", action="store_true")
     p = sub.add_parser("timelapse", help=_t("help_timelapse"))
+    add_done(p)
     p.add_argument("repo", nargs="?", default=".")
     p.add_argument("--out", required=True, help=_t("help_out"))
     p.add_argument("--view", default=defaults.get("views")[0])
     p.add_argument("--size", default=defaults.get("render_size"), help=_t("help_size"))
     p.add_argument("--fps", type=int, default=None)
     p = sub.add_parser("badge", help=_t("help_badge"))
+    add_done(p)
     p.add_argument("repo", nargs="?", default=".")
     p.add_argument("--out", default=defaults.get("badge_file"), help=_t("help_out"))
     p.add_argument("--url", default=defaults.get("homepage_placeholder"))
@@ -125,6 +135,7 @@ def build_parser():
     p.add_argument("--remove", action="store_true", help=_t("help_remove"))
     p.add_argument("--only", help=_t("help_only"))
     p = sub.add_parser("configure", help=_t("help_configure"))
+    add_done(p)
     p.add_argument("repo", nargs="?", default=".")
     p.add_argument("--areas", help=_t("help_areas"))
     p.add_argument("--size-by", help=_t("help_size_by"))
@@ -142,6 +153,8 @@ def main(argv=None):
     a = ap.parse_args(argv)
     if a.lang:
         os.environ["DROPVIZ_LANG"] = a.lang
+    if getattr(a, "done", None):
+        os.environ["DROPVIZ_DONE"] = a.done
     if a.cmd == "connect":
         return run_connect(a.remove, a.only)
     try:

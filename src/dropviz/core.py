@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import time
 
-from . import defaults, i18n, miniyaml
+from . import defaults, donerule, i18n, miniyaml
 
 NOTES_REF = "dropviz-verify"
 CLAIM_TTL = int(defaults.get("claim_ttl_hours") * 3600)
@@ -474,6 +474,8 @@ def compute(root, now=None):
     ci_fails = {k for k, v in metrics.ci_status(root).items() if v == "fail"}
     branch_rows = [(b, _log_files(root, "%s..%s" % (default, b))) for b in branches] if has_default else []
 
+    rule = donerule.get(cfg)
+    checks = donerule.Checks(root) if rule == "merged+ci" else None
     fcfg = [f for f in cfg.get("features") or [] if isinstance(f, dict) and "id" in f]
     fpaths = [[f["paths"]] if isinstance(f.get("paths"), str) else list(f.get("paths") or []) for f in fcfg]
     merged_by = _bucket(merged_rows, fpaths)
@@ -508,6 +510,17 @@ def compute(root, now=None):
                 evidence["verified_commit"] = ok[:8]
                 evidence["verified_note"] = notes.get(ok, "")[:300]
                 why.append("merged into %s and verification record on %s" % (default, ok[:8]))
+            elif rule != "strict" and log and not ci_fails & {r[0] for r in log[:20]} and not any(
+                    b["last"] > log[0][1] for b in evidence["unmerged_branches"]):
+                verdict, src = ("pass", "") if rule == "merged" else checks.result(log[0][0])
+                if verdict == "pass":
+                    status = "done"
+                    evidence["verified_commit"] = log[0][0][:8]
+                    evidence["verified_note"] = "git-only rule %s%s" % (rule, (": checks passed (%s)" % src) if src else "")
+                    why.append("merged into %s; done by the %s rule%s" % (default, rule, (" (checks passed: %s)" % src) if src else ""))
+                else:
+                    status = "in-progress" if evidence["unmerged_branches"] else "unknown"
+                    why.append("merged into %s but checks %s (%s)" % (default, "failed" if verdict == "fail" else "not known", src))
             elif evidence["unmerged_branches"]:
                 status = "in-progress"
                 why.append("unmerged commits on: " + ", ".join(
@@ -530,8 +543,10 @@ def compute(root, now=None):
             "claim": c, "reported_done": rep[-1] if rep else None,
             "note": ("reported done by a session; not confirmed by git evidence" if rep and status != "done" else ""),
         })
+    if checks:
+        checks.save()
     lay = resolve_areas(cfg, features)
-    return {"repo": root, "name": cfg.get("name") or os.path.basename(root), "default_branch": default,
+    return {"repo": root, "done_rule": rule, "name": cfg.get("name") or os.path.basename(root), "default_branch": default,
             "features": features, "commits": commits(root, default, prefixes), "generated": time.time(),
             "counts": _counts(features, lay), "areas": lay["areas"], "size_by": lay["size_by"],
             "work_unit": lay["work_unit"]}

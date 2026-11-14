@@ -364,7 +364,10 @@ class Replay(unittest.TestCase):
         self.assertEqual({k: name[v] for k, v in tl["frames"][-1]["s"].items()}, last)
         mid = timelapse.state_at(st, tl["frames"][len(tl["frames"]) // 2])
         lay = treemap.layout(mid, 1000, 600)
-        self.assertEqual(len([n for n in lay["nodes"] if n["kind"] == "feature"]), len(st["features"]))
+        shown = len([n for n in lay["nodes"] if n["kind"] == "feature"])
+        absent = len([n for n in lay["nodes"] if n["key"].startswith("x:")])   # not started yet: an empty slot
+        self.assertEqual(shown + absent, len(st["features"]))
+        self.assertGreater(absent, 0)       # the replay starts small and grows
 
 
 class Badge(unittest.TestCase):

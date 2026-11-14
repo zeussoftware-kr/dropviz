@@ -7,12 +7,12 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from . import core, defaults, i18n, live, metrics, timelapse, tokens, treemap
+from . import core, defaults, i18n, live, metrics, timelapse, tokens, treemap, trailers
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
 MAX_BODY = 1 << 20
-TTL = {"state": 4, "metrics": 15, "tokens": 30, "timelapse": 600, "live": 3}
+TTL = {"state": 4, "metrics": 15, "tokens": 30, "timelapse": 600, "live": 3, "trailers": 60}
 
 
 def page():
@@ -60,6 +60,10 @@ class Cache:
             return t
         return self.get("tokens", run)
 
+    def trailers(self):
+        """Models named in commit trailers (all time). Rows are kept so the replay can cut them at a day."""
+        return self.get("trailers", lambda: trailers.summarize(self.root, self.state()))
+
     def live(self):
         return self.get("live", lambda: live.working_now(self.root, self.state()))
 
@@ -67,13 +71,26 @@ class Cache:
         return self.get("timelapse", lambda: timelapse.frames(self.root, self.state()))
 
 
-def layout_ctx(cache, want_models=False, view=""):
+def trailer_ctx(cache, st, until=None):
+    tr = cache.trailers()
+    if until is not None:
+        tr = trailers.summarize(cache.root, st, until, rows=tr["rows"])
+    return dict(tr, colors=trailers.colors(tr))
+
+
+def layout_ctx(cache, want_models=False, view="", until=None):
     st = cache.state()
     ctx = {"now": time.time(), "attention": core.attention(cache.root), "config": core.load_config(cache.root)}
     ctx["metrics"] = None
     if view == "speed":  # only this view needs the per-feature weekly counts
         try:
             ctx["metrics"] = cache.metrics()
+        except Exception:
+            pass
+    ctx["done_rule"] = st.get("done_rule", "strict")
+    if view == "models" or want_models:
+        try:
+            ctx["trailers"] = trailer_ctx(cache, st, until)
         except Exception:
             pass
     if want_models or st.get("work_unit") == "tokens":
@@ -146,6 +163,9 @@ def make_handler(root):
                 self._json(cache.metrics(lang))
             elif path == "/api/tokens":
                 self._json(cache.tokens())
+            elif path == "/api/trailers":
+                tr = cache.trailers()
+                self._json({k: tr[k] for k in ("by_model", "features", "areas", "commits_total", "commits_with_model")})
             elif path == "/api/live":
                 self._json(cache.live())
             elif path == "/api/timelapse":
@@ -157,11 +177,13 @@ def make_handler(root):
                             "rules": defaults.get("size_rules", cfg), "units": defaults.get("work_units", cfg)})
             elif path == "/api/layout":
                 st = cache.state()
-                at = q.get("at")
+                at, until = q.get("at"), None
                 if at not in (None, ""):
                     tl = cache.timelapse()
-                    st = timelapse.state_at(st, tl["frames"][max(0, min(int(at), len(tl["frames"]) - 1))])
-                ctx = layout_ctx(cache, want_models=bool(q.get("model")), view=q.get("view", ""))
+                    fr = tl["frames"][max(0, min(int(at), len(tl["frames"]) - 1))]
+                    st = timelapse.state_at(st, fr)
+                    until = timelapse._day_end(fr["day"])
+                ctx = layout_ctx(cache, want_models=bool(q.get("model")), view=q.get("view", ""), until=until)
                 self._json(treemap.layout(st, int(q.get("w", 1000)), int(q.get("h", 600)), q.get("view", "progress"),
                                           q.get("focus", ""), ctx, lang, model=q.get("model", "")))
             else:
