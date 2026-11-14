@@ -1,10 +1,23 @@
 <h1 align="center"><picture><source media="(prefers-color-scheme: light)" srcset="docs/brand/logo-light.svg"><img alt="DropViz" src="docs/brand/logo.svg" height="56"></picture></h1>
 
-**See what your AI coding agents actually finished: verified, merged, per feature.**
+**DropViz is a control tower for very large projects built by dozens of AI coding models at once: one map of what exists, what is in progress, and what is actually done, proven by the project's own git history.**
 
-![The map: areas side by side, one tile per feature](docs/screenshots/map.png)
+**You'd use it when:**
+- you let several AI coding assistants work on one repo and you lose track of what is actually done;
+- you want to see where work is happening right now, and what is merged and tested, not only what someone said;
+- you want your assistant to answer "where are we, and what is next?" from the repo itself.
 
-One tile per feature, grouped into areas (areas can hold areas), coloured by what git can prove. Nothing leaves your machine.
+![The map of an invented example project: areas side by side, one tile per feature](docs/screenshots/map.png)
+
+*Each tile is one feature, grouped into areas. Green = done (merged and tested), teal = in progress (work on another branch), grey = no evidence yet, dark empty tiles = planned. Size = number of features. This is an invented example project, not a real one.*
+
+Everything runs on your computer; nothing is uploaded.
+
+## Why it exists
+
+DropViz was built as the control tower for a very large project: an operating system with a kernel, a desktop, a server and apps, developed by one person directing dozens of AI coding models working in parallel.
+With that many workers you need one honest picture of what exists, what is in progress, what is actually done (merged and verified), where each model worked and what it cost in tokens.
+Generating code was not the hard part; keeping the picture straight was. A model saying "done" is not evidence, so DropViz takes status only from git: merged into the main branch, with a verification record after the latest change.
 Real-world case: [nanumos.com](https://nanumos.com)
 
 ![Replay of ten weeks of history in 15 seconds](docs/timelapse.gif)
@@ -38,9 +51,13 @@ dropviz /tmp/kestrel
 When you like it, give the map your own shape: open **Settings** on the page (or run `dropviz init` to write a
 `dropviz.yaml` draft; it asks one question, "What are you building?"). The old file is always kept as a backup.
 
+## What it reads
+
+Only your repo's git history, an optional `dropviz.yaml`, and, if you want models and tokens, local records of AI tools (counts, timestamps, folder, branch, model name; never message text). It writes only to `.dropviz/` (git-ignored). The page is served on 127.0.0.1 only. Limits: status needs verification records (git notes or `ci-status.json`) to show anything as done; model and token data exist only where local transcripts survive; no GitHub/GitLab connection yet.
+
 ## What you see
 
-- **Area / Feature / Card.** Three words, top to bottom. An **area** is a block of the map and can hold features and
+- **Area / Feature / Card.** Three words, top to bottom (the map itself is a "treemap": rectangles whose size shows how much each part counts). An **area** is a block of the map and can hold features and
   other areas (the breadcrumb shows the depth, for example `Core > Library > Thumbnails`). A **feature** is one tile.
   A **card** is a piece of work on a feature; cards are listed when you open a feature (who did it, which model, state).
 - **Zoom** into any area and back (click its title, `Esc` goes up). Search box, legend, works on a phone.
@@ -115,6 +132,8 @@ lives in `src/dropviz/defaults.json`; a top-level key in `dropviz.yaml`, an envi
 
 ## MCP: let Claude Code and Codex continue the work
 
+MCP (Model Context Protocol) is the standard way an AI assistant calls tools on your computer; here it lets the assistant ask DropViz where the project stands.
+
 `dropviz mcp` is a stdio MCP server. Tools: `status`, `next`, `claim`, `report`, `metrics`, `tokens`, `explain`, `configure`.
 A new session asks "where are we and what is next", claims a feature (a second session is refused; claims expire after 2 hours idle),
 and reports when it believes it is done (a claim only). `status` also returns who is working now, tokens per model and the model ranking.
@@ -155,6 +174,21 @@ them to the commit they went into. Records that fit no commit show up in an expl
 If your tools work in short-lived worktrees, list them in `dropviz.yaml`: `worktree_roots: ["~/worktrees/*"]`.
 To also watch other computers, list `remote_hosts: ["me@box"]` (off by default; only asks them whether a transcript changed recently, over read-only ssh).
 
+## Example: ripgrep
+
+A real public repository, run exactly as in the start steps above: [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) (Unlicense / MIT). Shown only as a worked example.
+
+```
+pipx install git+https://github.com/zeussoftware-kr/dropviz.git
+dropviz https://github.com/BurntSushi/ripgrep        # history only, kept in a cache folder; about 30 seconds here
+```
+
+![DropViz on the ripgrep history](docs/screenshots/example-ripgrep.png)
+
+- DropViz drafted 17 features from the folders (`crates/regex`, `crates/searcher`, `ci`, `tests`, ...). The `crates` area is the largest; no `dropviz.yaml` was written, so these are folder names, not a hand-made feature list.
+- Green tiles are **in progress**: unmerged branches on the remote touch those folders (5 of 17). Grey tiles are **unknown**. Nothing is **done**: "done" needs a verification record (a git note written by CI, see "The honesty rule"), and this repo has none, so 0 of 2,232 merged units count as verified. DropViz does not guess from the CI badge.
+- The models and tokens columns are empty (shown as "unknown model" / "not recorded") because this repo has no AI-agent ledger and no local transcripts. Nothing was changed in the repo.
+
 ## Status of this project
 
 Works now: local git reader, the area map with seven views, size rules, settings with backup, replay, working-now layer,
@@ -167,7 +201,7 @@ features; you choose what is public, tokens and models hidden by default) and **
 menus and shortcuts of the product you aim to match (CSV/TSV), each row becomes a planned tile with same / different / missing and test evidence,
 so the map shows "% like the target". DropViz ships no third-party product lists.
 
-Tested on macOS and Linux; **Windows is unverified until the first CI run** (the CI matrix is ubuntu/macos/windows x Python 3.10/3.12).
+Tested on macOS and Linux (CI also runs Windows, Python 3.10 and 3.12; see the Actions tab for the current state).
 The treemap draws SVG with our own code (no CDN, no external fonts); the first map of a repo needs only git.
 
 ```
@@ -181,9 +215,24 @@ Security reports: SECURITY.md. Made by Zeus Software (zeus.kim).
 
 # DropViz (한국어)
 
-**AI 코딩 도구가 실제로 끝낸 일을 보세요: 기능별로, 검증되어 병합된 것만.**
+**DropViz 는 AI 코딩 모델 수십 개가 함께 만드는 아주 큰 프로젝트의 관제탑입니다. 무엇이 있고, 무엇을 만드는 중이고, 무엇이 진짜 끝났는지를 프로젝트 자신의 git 기록을 근거로 지도 한 장에 보여 줍니다.**
 
-기능 하나가 타일 하나입니다. 영역(영역 안에 영역도 가능)으로 묶고, git 이 증명하는 것만 색으로 칠합니다. 자료는 밖으로 나가지 않습니다.
+**이럴 때 쓰세요:**
+- 한 저장소에서 AI 코딩 비서 여러 개가 일하는데, 무엇이 정말 끝났는지 놓치게 될 때
+- 누가 그렇다고 말한 것이 아니라, 지금 어디서 일하고 있고 무엇이 병합·검증되었는지 보고 싶을 때
+- 비서가 "지금 어디까지 했고, 다음은 뭐야?"에 저장소 자체를 보고 답하게 하고 싶을 때
+
+![예제 프로젝트의 지도: 영역이 나란히, 기능마다 타일 하나](docs/screenshots/map.png)
+
+*타일 하나가 기능 하나이고 영역으로 묶여 있습니다. 초록 = 끝남(병합되고 시험 통과), 청록 = 작업 중(다른 가지에 작업이 있음), 회색 = 아직 근거 없음, 어두운 빈 칸 = 계획. 크기 = 기능 수. 지어낸 예제 프로젝트입니다.*
+
+모든 것은 내 컴퓨터에서만 돌아가고 밖으로 올리지 않습니다.
+
+## 왜 만들었나
+
+DropViz 는 아주 큰 프로젝트(커널·데스크톱·서버·앱을 가진 운영체제)를 한 사람이 수십 개의 AI 코딩 모델을 동시에 지휘하며 개발할 때 쓰는 관제탑으로 만들었습니다.
+일꾼이 그만큼 많으면 무엇이 있는지, 무엇이 진행 중인지, 무엇이 정말 끝났는지(병합되고 검증됨), 어느 모델이 어디서 일했고 토큰이 얼마나 들었는지를 한 장의 정직한 그림으로 봐야 합니다.
+코드를 만드는 것은 어려운 부분이 아니었고, 그림을 바르게 유지하는 것이 어려웠습니다. 모델이 "끝났다"고 말한 것은 근거가 아니므로, DropViz 는 상태를 git 에서만 가져옵니다: 기본 가지에 병합되었고 마지막 변경 뒤에 검증 기록이 있을 때만.
 실제 사례: [nanumos.com](https://nanumos.com)
 
 ## 5분 시작
@@ -252,4 +301,20 @@ git notes --ref=dropviz-verify add -m "pass" <커밋>
 다음: **publish**(정적 사이트 + GitHub Pages 설정 + 새로 검증된 기능 피드)와 **참조 목록 가져오기**(목표로 삼는 제품의 기능·메뉴·단축키 목록을 내 CSV 로 가져와
 같음/다름/없음과 시험 근거를 타일로 보여 줌). dropviz 는 남의 제품 목록을 싣지 않습니다.
 
-macOS·Linux 에서 시험했고 **Windows 는 첫 CI 실행 전까지 확인되지 않았습니다.** 이슈는 환영하고, 코드 기여는 아직 받지 않습니다(CONTRIBUTING.md). 보안 제보는 SECURITY.md. 라이선스 Apache-2.0. 만든 곳: 제우스소프트웨어(zeus.kim).
+macOS·Linux 에서 시험했습니다(CI 는 Windows 도 돌리며 현재 상태는 Actions 탭에서 볼 수 있습니다). 이슈는 환영하고, 코드 기여는 아직 받지 않습니다(CONTRIBUTING.md). 보안 제보는 SECURITY.md. 라이선스 Apache-2.0. 만든 곳: 제우스소프트웨어(zeus.kim).
+
+## 예제: ripgrep
+
+실제 공개 저장소를 위 시작 순서 그대로 돌린 예: [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) (Unlicense / MIT). 작동 예시일 뿐입니다.
+
+```
+pipx install git+https://github.com/zeussoftware-kr/dropviz.git
+dropviz https://github.com/BurntSushi/ripgrep        # 역사만 받아 캐시 폴더에 둠, 여기서는 약 30초
+```
+
+![ripgrep 역사에 돌린 DropViz](docs/screenshots/example-ripgrep.png)
+
+- 폴더로 기능 17개 초안을 만들었습니다(`crates/regex`, `crates/searcher`, `ci`, `tests` ...). `crates` 영역이 가장 큽니다. `dropviz.yaml` 을 쓰지 않았으므로 손으로 만든 기능 목록이 아니라 폴더 이름입니다.
+- 초록 타일은 **진행 중**: 원격의 병합 안 된 가지가 그 폴더를 건드립니다(17개 중 5개). 회색은 **모름**. **됨**은 없습니다. "됨"에는 검증 기록(CI 가 적는 git note, 「정직 규칙」 참고)이 필요한데 이 저장소엔 없어서 병합 2,232개 중 0개만 검증으로 셉니다. CI 배지를 보고 짐작하지 않습니다.
+- 모델·토큰 칸은 비어 있습니다(「모델 모름」/「기록 없음」). 이 저장소에는 AI 에이전트 기록이 없고 내 컴퓨터에 대화 기록도 없기 때문입니다. 저장소는 바뀌지 않았습니다.
+

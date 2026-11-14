@@ -45,7 +45,7 @@ def shoot_all(url, jobs, size, tmp):
     if sync_playwright:
         with sync_playwright() as p:
             b = p.chromium.launch()
-            pg = b.new_page(viewport={"width": w, "height": h})
+            pg = b.new_page(viewport={"width": w, "height": h}, locale=i18n.from_env())
             pg.goto(url)
             pg.wait_for_selector("body[data-ready]", timeout=defaults.get("render_timeout_seconds") * 1000)
             for frag, out in jobs:
@@ -58,7 +58,7 @@ def shoot_all(url, jobs, size, tmp):
     if not exe:
         raise RenderError(i18n.t(i18n.from_env(), "err.no_browser"))
     for frag, out in jobs:
-        subprocess.run([exe] + defaults.get("chrome_flags") + ["--user-data-dir=" + os.path.join(tmp, "profile"), "--virtual-time-budget=8000",
+        subprocess.run([exe] + defaults.get("chrome_flags") + ["--lang=" + i18n.from_env(), "--user-data-dir=" + os.path.join(tmp, "profile"), "--virtual-time-budget=8000",
                                                            "--window-size=%d,%d" % (w, h), "--screenshot=" + out, url + "#" + frag],
                        check=True, capture_output=True, env=dict(os.environ, HOME=tmp))
 

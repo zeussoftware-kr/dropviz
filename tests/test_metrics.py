@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -112,7 +113,7 @@ class Cli(unittest.TestCase):
         d, shas = make([1])
         sh(d, "notes", "--ref=dropviz-verify", "add", "-m", "pass", shas[0])
         env = dict(os.environ, PYTHONPATH=os.path.join(ROOT, "src"))
-        out = subprocess.run(["python3", "-m", "dropviz", "metrics", d, "--json"], env=env, capture_output=True, text=True)
+        out = subprocess.run([sys.executable, "-m", "dropviz", "metrics", d, "--json"], env=env, capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertEqual(json.loads(out.stdout)["headline"]["verified_total"], 2)
         from dropviz import mcp
