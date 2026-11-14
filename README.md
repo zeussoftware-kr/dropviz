@@ -7,9 +7,13 @@
 - you want to see where work is happening right now, and what is merged and tested, not only what someone said;
 - you want your assistant to answer "where are we, and what is next?" from the repo itself.
 
-![The map of an invented example project: areas side by side, one tile per feature](docs/screenshots/map.png)
+![The public map of NanumOS: about 2,200 features in four markets, one dot per feature](docs/screenshots/nanumos-map.png)
 
-*Each tile is one feature, grouped into areas. Green = done (merged and tested), teal = in progress (work on another branch), grey = no evidence yet, dark empty tiles = planned. Size = number of features. This is an invented example project, not a real one.*
+*The real record of one person building an operating system with dozens of AI coding models ([nanumos.com](https://nanumos.com)). One dot is one feature; bright green = done, dark green = in progress, slate = planned, red = being fixed. This is the project's public map, which uses the same ideas as DropViz.*
+
+![Replay of the last weeks of the NanumOS map, 20 seconds](docs/nanumos-timelapse.gif)
+
+*20 seconds of the public replay (27 Oct to 14 Nov 2026): dots turn green as work is merged and checked. [MP4 version](docs/nanumos-timelapse.mp4). The public map starts its replay at that date.*
 
 Everything runs on your computer; nothing is uploaded.
 
@@ -19,8 +23,6 @@ DropViz was built as the control tower for a very large project: an operating sy
 With that many workers you need one honest picture of what exists, what is in progress, what is actually done (merged and verified), where each model worked and what it cost in tokens.
 Generating code was not the hard part; keeping the picture straight was. A model saying "done" is not evidence, so DropViz takes status only from git: merged into the main branch, with a verification record after the latest change.
 Real-world case: [nanumos.com](https://nanumos.com)
-
-![Replay of ten weeks of history in 15 seconds](docs/timelapse.gif)
 
 ## 5-minute start
 
@@ -47,6 +49,10 @@ Try DropViz before pointing it at your own repo, with the invented example proje
 python3 examples/make_demo_repo.py /tmp/kestrel
 dropviz /tmp/kestrel
 ```
+
+![The invented example project: areas side by side, one tile per feature](docs/screenshots/map.png)
+
+![Replay of the invented project's ten weeks of history in 15 seconds](docs/timelapse.gif)
 
 When you like it, give the map your own shape: open **Settings** on the page (or run `dropviz init` to write a
 `dropviz.yaml` draft; it asks one question, "What are you building?"). The old file is always kept as a backup.
@@ -174,24 +180,23 @@ them to the commit they went into. Records that fit no commit show up in an expl
 If your tools work in short-lived worktrees, list them in `dropviz.yaml`: `worktree_roots: ["~/worktrees/*"]`.
 To also watch other computers, list `remote_hosts: ["me@box"]` (off by default; only asks them whether a transcript changed recently, over read-only ssh).
 
-## Example: ripgrep
+## Example: a public repo built with AI coding agents
 
-A real public repository, run exactly as in the start steps above: [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) (Unlicense / MIT). Shown only as a worked example.
+Try it on a repo you did not write. [storytold/photocraft](https://github.com/storytold/photocraft) is a public repository (Apache-2.0) whose commit messages carry AI co-author trailers (6,534 of its 13,114 commits, counted with `git log`). Shown only as a worked example.
 
 ```
 pipx install git+https://github.com/zeussoftware-kr/dropviz.git
-dropviz https://github.com/BurntSushi/ripgrep        # history only, kept in a cache folder; about 30 seconds here
+dropviz https://github.com/storytold/photocraft      # history only, kept in a cache folder; about a minute here
 ```
 
-![Replay of the ripgrep history: tiles appear and change as the work lands](docs/example-ripgrep.gif)
+![Replay of the PhotoCraft history in the Attention view: the busiest parts of the code light up](docs/example-photocraft.gif)
 
-*About 18 seconds: the years of ripgrep history replayed day by day (the date is shown top right). Tiles change as work lands; green stays limited because the repo has no verification records. [MP4 version](docs/example-ripgrep.mp4). Still picture:*
+*15 seconds, 46 days of history (Attention view): size and colour follow how much each folder was worked on ([MP4](docs/example-photocraft.mp4)).*
 
-![DropViz on the ripgrep history](docs/screenshots/example-ripgrep.png)
-
-- DropViz drafted 17 features from the folders (`crates/regex`, `crates/searcher`, `ci`, `tests`, ...). The `crates` area is the largest; no `dropviz.yaml` was written, so these are folder names, not a hand-made feature list.
-- Green tiles are **in progress**: unmerged branches on the remote touch those folders (5 of 17). Grey tiles are **unknown**. Nothing is **done**: "done" needs a verification record (a git note written by CI, see "The honesty rule"), and this repo has none, so 0 of 2,232 merged units count as verified. DropViz does not guess from the CI badge.
-- The models and tokens columns are empty (shown as "unknown model" / "not recorded") because this repo has no AI-agent ledger and no local transcripts. Nothing was changed in the repo.
+- DropViz drafted 38 features from the folders. In this view the biggest tiles are `crates/ui-egui`, `crates/engine`, `crates/io` and `crates/algo`: the folders with the most commits.
+- No tile is **done**: "done" needs a verification record (a git note written by CI, see "The honesty rule"), and this repo has none, so 0 of 3,602 merged units count as verified. Green stripes in the Progress view mean unmerged work exists on a branch. DropViz does not guess from other signs.
+- The header says "0 tokens" and the Models panel is empty because DropViz reads token counts and models from local AI-tool records on your computer, and a repo you only cloned has none. The co-author trailers are counted separately for "human or AI tool".
+- It also ran on [openclaw/openclaw](https://github.com/openclaw/openclaw) (MIT; 2,794 AI co-author trailers in 128,567 commits), but its history is too large to replay in minutes here, so no replay is shown.
 
 ## Status of this project
 
@@ -226,9 +231,13 @@ Security reports: SECURITY.md. Made by Zeus Software (zeus.kim).
 - 누가 그렇다고 말한 것이 아니라, 지금 어디서 일하고 있고 무엇이 병합·검증되었는지 보고 싶을 때
 - 비서가 "지금 어디까지 했고, 다음은 뭐야?"에 저장소 자체를 보고 답하게 하고 싶을 때
 
-![예제 프로젝트의 지도: 영역이 나란히, 기능마다 타일 하나](docs/screenshots/map.png)
+![NanumOS 공개 지도: 기능 약 2,200개, 점 하나가 기능 하나](docs/screenshots/nanumos-map.png)
 
-*타일 하나가 기능 하나이고 영역으로 묶여 있습니다. 초록 = 끝남(병합되고 시험 통과), 청록 = 작업 중(다른 가지에 작업이 있음), 회색 = 아직 근거 없음, 어두운 빈 칸 = 계획. 크기 = 기능 수. 지어낸 예제 프로젝트입니다.*
+*AI 코딩 모델 수십 개와 한 사람이 운영체제를 만든 진짜 기록입니다([nanumos.com](https://nanumos.com)). 점 하나가 기능 하나이고, 밝은 초록 = 끝남, 짙은 초록 = 작업 중, 회색 = 계획, 빨강 = 고치는 중입니다. 이 프로젝트의 공개 지도이며 DropViz 와 같은 생각으로 만들었습니다.*
+
+![NanumOS 지도의 최근 몇 주 다시 보기, 20초](docs/nanumos-timelapse.gif)
+
+*공개 다시 보기 20초(2026-10-27 ~ 11-14): 일이 병합·확인될 때마다 점이 초록으로 바뀝니다. [MP4 판](docs/nanumos-timelapse.mp4). 공개 지도는 이 날짜부터 다시 보기를 시작합니다.*
 
 모든 것은 내 컴퓨터에서만 돌아가고 밖으로 올리지 않습니다.
 
@@ -307,22 +316,20 @@ git notes --ref=dropviz-verify add -m "pass" <커밋>
 
 macOS·Linux 에서 시험했습니다(CI 는 Windows 도 돌리며 현재 상태는 Actions 탭에서 볼 수 있습니다). 이슈는 환영하고, 코드 기여는 아직 받지 않습니다(CONTRIBUTING.md). 보안 제보는 SECURITY.md. 라이선스 Apache-2.0. 만든 곳: 제우스소프트웨어(zeus.kim).
 
-## 예제: ripgrep
+## 예제: AI 코딩 에이전트로 만든 공개 저장소
 
-실제 공개 저장소를 위 시작 순서 그대로 돌린 예: [BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) (Unlicense / MIT). 작동 예시일 뿐입니다.
+내가 쓰지 않은 저장소에 돌려 보세요. [storytold/photocraft](https://github.com/storytold/photocraft) 는 공개 저장소(Apache-2.0)이고 커밋 메시지에 AI 공동 작성자 표시가 있습니다(13,114개 중 6,534개, `git log` 로 센 값). 작동 예시일 뿐입니다.
 
 ```
 pipx install git+https://github.com/zeussoftware-kr/dropviz.git
-dropviz https://github.com/BurntSushi/ripgrep        # 역사만 받아 캐시 폴더에 둠, 여기서는 약 30초
+dropviz https://github.com/storytold/photocraft      # 역사만 받아 캐시 폴더에 둠, 여기서는 약 1분
 ```
 
-![ripgrep 역사 다시 보기: 일이 들어올 때마다 타일이 바뀝니다](docs/example-ripgrep.gif)
+![PhotoCraft 역사를 관심 화면으로 다시 보기: 가장 바쁜 부분이 켜집니다](docs/example-photocraft.gif)
 
-*약 18초: ripgrep 의 몇 해 역사를 하루씩 돌립니다(날짜는 오른쪽 위). 검증 기록이 없는 저장소라서 초록은 많지 않습니다. [MP4 판](docs/example-ripgrep.mp4). 정지 그림:*
+*15초, 46일치 역사(관심 화면): 크기와 색은 각 폴더에 일이 얼마나 있었는지를 따릅니다([MP4](docs/example-photocraft.mp4)).*
 
-![ripgrep 역사에 돌린 DropViz](docs/screenshots/example-ripgrep.png)
-
-- 폴더로 기능 17개 초안을 만들었습니다(`crates/regex`, `crates/searcher`, `ci`, `tests` ...). `crates` 영역이 가장 큽니다. `dropviz.yaml` 을 쓰지 않았으므로 손으로 만든 기능 목록이 아니라 폴더 이름입니다.
-- 초록 타일은 **진행 중**: 원격의 병합 안 된 가지가 그 폴더를 건드립니다(17개 중 5개). 회색은 **모름**. **됨**은 없습니다. "됨"에는 검증 기록(CI 가 적는 git note, 「정직 규칙」 참고)이 필요한데 이 저장소엔 없어서 병합 2,232개 중 0개만 검증으로 셉니다. CI 배지를 보고 짐작하지 않습니다.
-- 모델·토큰 칸은 비어 있습니다(「모델 모름」/「기록 없음」). 이 저장소에는 AI 에이전트 기록이 없고 내 컴퓨터에 대화 기록도 없기 때문입니다. 저장소는 바뀌지 않았습니다.
-
+- 폴더로 기능 38개 초안을 만들었습니다. 이 화면에서 가장 큰 타일은 `crates/ui-egui`, `crates/engine`, `crates/io`, `crates/algo` 로, 커밋이 가장 많은 폴더입니다.
+- **됨**인 타일은 없습니다. "됨"에는 검증 기록(CI 가 적는 git note, 「정직 규칙」 참고)이 필요한데 이 저장소엔 없어서 병합 3,602개 중 0개만 검증으로 셉니다. 진행 중 화면의 초록 띠는 가지에 병합 안 된 작업이 있다는 뜻입니다.
+- 맨 위 토큰이 0 이고 모델 칸이 비어 있는 것은, DropViz 가 토큰·모델을 내 컴퓨터의 AI 도구 기록에서 읽는데 내려받기만 한 저장소에는 그 기록이 없기 때문입니다. 공동 작성자 표시는 「사람인지 AI 도구인지」 칸에서 따로 셉니다.
+- [openclaw/openclaw](https://github.com/openclaw/openclaw) (MIT, 커밋 128,567개 중 AI 공동 작성자 표시 2,794개)에도 돌려 보았지만 역사가 너무 커서 몇 분 안에 다시 보기를 만들 수 없어 영상은 싣지 않았습니다.
