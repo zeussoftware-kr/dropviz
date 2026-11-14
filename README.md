@@ -7,7 +7,7 @@
 - you want to see where work is happening right now, and what is merged and tested, not only what someone said;
 - you want your assistant to answer "where are we, and what is next?" from the repo itself.
 
-![The public map of NanumOS: about 2,200 features in four markets, one dot per feature](docs/screenshots/nanumos-map.png)
+![The public map of NanumOS: about 2,200 features in four groups, one dot per feature](docs/screenshots/nanumos-map.png)
 
 *The real record of one person building an operating system with dozens of AI coding models ([nanumos.com](https://nanumos.com)). One dot is one feature; bright green = done, dark green = in progress, slate = planned, red = being fixed. This is the project's public map, which uses the same ideas as DropViz.*
 
