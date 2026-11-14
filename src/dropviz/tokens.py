@@ -121,7 +121,10 @@ class Repo:
         while p and p != os.sep:
             if any(fnmatch.fnmatchcase(p, g) for g in self.globs):
                 return True
-            p = os.path.dirname(p)
+            up = os.path.dirname(p)
+            if up == p:   # a drive root such as D:\ is its own parent on Windows
+                break
+            p = up
         return False
 
     def owns(self, cwd, branch=None):
