@@ -99,6 +99,7 @@ class Connect(Fake, unittest.TestCase):
         self.assertEqual(self.read(".config/opencode/opencode.jsonc"), raw)
         self.assertIn("dropviz", r["line"])
 
+    @unittest.skipIf(sys.platform == "win32", "the fake claude is a /bin/sh script; a Windows stand-in (claude.cmd) is not written yet")
     def test_claude_uses_its_own_cli(self):
         self.fake_claude()
         r = connect.run(only=["claude"])[0]
