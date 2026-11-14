@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dropviz"
+version = "0.1.0"
+description = "See what your AI coding agents actually finished: verified, merged, per feature."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Zeus Software" }]
+dependencies = []
+
+[project.scripts]
+dropviz = "dropviz.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+dropviz = ["*.json", "*.html", "i18n/*.json"]

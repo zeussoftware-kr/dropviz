@@ -1,0 +1,30 @@
+# dropviz.yaml - what this project is made of. Status is NEVER set here:
+# it is computed from git evidence (merged to the default branch + a verification record).
+name: "dropviz"
+default_branch: "main"
+ai_branch_prefixes: ["codex/", "claude/", "gemini/", "opencode/"]
+features:
+  - id: "git-reader"
+    name: "local git reader and honest status"
+    paths: ["src/dropviz/core.py", "src/dropviz/miniyaml.py"]
+    accept: "A repo with dropviz.yaml shows done / in-progress / unknown from git evidence only."
+  - id: "metrics"
+    name: "verified-and-merged headline and ETA"
+    paths: ["src/dropviz/metrics.py"]
+    accept: "Verified merges per day/week; ETA says not enough data under 3 weeks."
+  - id: "tokens"
+    name: "tokens per commit"
+    paths: ["src/dropviz/tokens.py"]
+    accept: "Every record lands on a commit or in the unattributed bucket, nothing counted twice."
+  - id: "mcp"
+    name: "MCP server"
+    paths: ["src/dropviz/mcp.py"]
+    accept: "Claude Code and Codex can ask status/next/claim/report."
+  - id: "web"
+    name: "local map page"
+    paths: ["src/dropviz/web.py"]
+    accept: "The map opens on 127.0.0.1 and shows the headline."
+  - id: "docs"
+    name: "docs and examples"
+    paths: ["README.md", "examples/", "docs/"]
+    accept: "A new user reaches the map in five minutes."

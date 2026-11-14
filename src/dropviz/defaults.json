@@ -1,0 +1,345 @@
+{
+ "views": [
+  "progress",
+  "parts",
+  "now",
+  "priority",
+  "speed",
+  "risk",
+  "attention"
+ ],
+ "size_rules": [
+  "features",
+  "weight",
+  "work"
+ ],
+ "work_units": [
+  "commits",
+  "tokens"
+ ],
+ "default_size_rule": "features",
+ "default_work_unit": "commits",
+ "statuses": [
+  "done",
+  "in-progress",
+  "unknown"
+ ],
+ "status_colors": {
+  "done": "#3fd16f",
+  "in-progress": "#2a7d4f",
+  "unknown": "#3b4250",
+  "planned": "#232831"
+ },
+ "idle_color": "#2c313b",
+ "palette": [
+  "#4f7fc4",
+  "#8b6fc4",
+  "#3f9fb5",
+  "#c46f8b",
+  "#c49a4f",
+  "#7a86c4",
+  "#5f9fa0",
+  "#b0707a",
+  "#8c7a5a",
+  "#6c8fb0"
+ ],
+ "view_colors": {
+  "now_claim": "#ffb347",
+  "now_open": "#3da5c9",
+  "now_recent": "#4f7fc4",
+  "priority_low": "#4a3b25",
+  "priority_high": "#ffb347",
+  "speed": "#4fb5e8",
+  "risk_red": "#e5484d",
+  "risk_orange": "#f0883e",
+  "risk_yellow": "#d9b13b",
+  "attention": "#d36bd6"
+ },
+ "thresholds": {
+  "stale_branch_days": 7,
+  "idle_branch_days": 3,
+  "recent_days": 3,
+  "stale_claim_minutes": 30,
+  "claim_ttl_hours": 2,
+  "live_window_minutes": 120,
+  "live_stall_minutes": 30,
+  "refresh_seconds": 5,
+  "eta_window_weeks": 4,
+  "eta_min_points": 3,
+  "attention_ask_weight": 3,
+  "attention_open_weight": 2,
+  "commit_list_limit": 200,
+  "tile_gap": 1,
+  "label_char_width": 5.6,
+  "commit_call_window_seconds": 120,
+  "live_tail_kb": 192,
+  "timelapse_fps": 2,
+  "max_feature_log": 500,
+  "ranking_min_features": 5,
+  "badge_ai_percent_digits": 0
+ },
+ "ai_branch_prefixes": [
+  "codex/",
+  "claude/",
+  "gemini/",
+  "opencode/"
+ ],
+ "port": 8765,
+ "host": "127.0.0.1",
+ "default_area": "General",
+ "default_languages": [
+  "en",
+  "ko"
+ ],
+ "sources": {
+  "claude_dir": "~/.claude/projects",
+  "codex_dir": "~/.codex/sessions",
+  "opencode_db": "~/.local/share/opencode/opencode.db",
+  "cache_dir": "~/.cache/dropviz",
+  "state_dir": ".dropviz"
+ },
+ "tools": {
+  "claude": {
+   "label": "Claude",
+   "domains": [
+    "anthropic.com"
+   ],
+   "name": "claude"
+  },
+  "codex": {
+   "label": "Codex",
+   "domains": [
+    "openai.com"
+   ],
+   "name": "(?:openai[\\s\\-]+)?codex|chatgpt|openai"
+  },
+  "gemini": {
+   "label": "Gemini",
+   "domains": [
+    "google.com"
+   ],
+   "name": "gemini"
+  },
+  "opencode": {
+   "label": "OpenCode",
+   "domains": [
+    "opencode.ai",
+    "sst.dev"
+   ],
+   "name": "opencode"
+  },
+  "copilot": {
+   "label": "Copilot",
+   "domains": [],
+   "name": "copilot|github copilot"
+  },
+  "cursor": {
+   "label": "Cursor",
+   "domains": [
+    "cursor.com",
+    "cursor.sh"
+   ],
+   "name": "cursor"
+  },
+  "aider": {
+   "label": "Aider",
+   "domains": [
+    "aider.chat"
+   ],
+   "name": "aider"
+  }
+ },
+ "model_words": "(?:code|opus|sonnet|haiku|fable|cli|agent|bot|gpt|pro|flash|ultra|mini|nano|max|thinking|[0-9][0-9.\\-]*|[a-z]?[0-9][0-9.\\-a-z]*)",
+ "init_roles": {
+  "client": [
+   "client",
+   "app",
+   "apps",
+   "ui",
+   "web",
+   "www",
+   "site",
+   "frontend",
+   "front",
+   "mobile",
+   "desktop",
+   "gui",
+   "views",
+   "pages"
+  ],
+  "server": [
+   "server",
+   "api",
+   "backend",
+   "back",
+   "services",
+   "service",
+   "cmd",
+   "db",
+   "worker",
+   "workers",
+   "infra",
+   "deploy"
+  ],
+  "extra": [
+   "docs",
+   "doc",
+   "documentation",
+   "tests",
+   "test",
+   "spec",
+   "examples",
+   "example",
+   "tools",
+   "tool",
+   "scripts",
+   "script",
+   "bench"
+  ]
+ },
+ "init_kinds": [
+  {
+   "words": [
+    "game"
+   ],
+   "names": [
+    "Engine",
+    "Gameplay",
+    "Online",
+    "Tools and docs"
+   ]
+  },
+  {
+   "words": [
+    "os",
+    "kernel",
+    "operating"
+   ],
+   "names": [
+    "Kernel",
+    "Desktop",
+    "Server",
+    "Tools and docs"
+   ]
+  },
+  {
+   "words": [
+    "web",
+    "site",
+    "service",
+    "saas"
+   ],
+   "names": [
+    "Core",
+    "Frontend",
+    "Backend",
+    "Tools and docs"
+   ]
+  },
+  {
+   "words": [
+    "app",
+    "mobile"
+   ],
+   "names": [
+    "Core",
+    "App",
+    "Backend",
+    "Tools and docs"
+   ]
+  }
+ ],
+ "init_default_names": [
+  "Core",
+  "Client",
+  "Server",
+  "Tools and docs"
+ ],
+ "skip_dirs": [
+  "node_modules",
+  "__pycache__",
+  "dist",
+  "build",
+  "venv",
+  "vendor"
+ ],
+ "bot_locals": [
+  "noreply",
+  "no-reply",
+  "bot",
+  "agent",
+  "ai"
+ ],
+ "name_required_tools": [
+  "gemini"
+ ],
+ "layout": {
+  "hdr_top": 16,
+  "hdr_1": 13,
+  "hdr_n": 11,
+  "min_h_top": 30,
+  "min_h": 24,
+  "min_w": 24,
+  "pad_top": 1,
+  "pad": 2,
+  "hdr_fill_top": "#0f1013",
+  "hdr_fill": "#3a3836",
+  "tint": 0.35,
+  "tint_decay": 0.4,
+  "top_char_width": 6.6,
+  "tile_min_w": 16,
+  "tile_two_line_h": 28,
+  "tile_min_h": 16
+ },
+ "render_size": "1280x720",
+ "render_timeout_seconds": 60,
+ "render_fps": 6,
+ "render_max_seconds": 18,
+ "chrome_candidates": [
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "google-chrome",
+  "google-chrome-stable",
+  "chromium",
+  "chromium-browser"
+ ],
+ "chrome_flags": [
+  "--headless=new",
+  "--use-mock-keychain",
+  "--password-store=basic",
+  "--no-first-run",
+  "--no-default-browser-check",
+  "--disable-gpu",
+  "--hide-scrollbars"
+ ],
+ "badge": {
+  "label_fill": "#2b2f38",
+  "value_fill": "#2e9d57",
+  "text_fill": "#ffffff",
+  "height": 22,
+  "font": "11px Verdana,DejaVu Sans,sans-serif",
+  "pad": 8,
+  "char_width": 6.4
+ },
+ "badge_file": "dropviz-badge.svg",
+ "homepage_placeholder": "https://example.invalid/your-project",
+ "site_url": "https://github.com/zeussoftware-kr/dropviz",
+ "connect": {
+  "server_name": "dropviz",
+  "server_args": [
+   "mcp"
+  ],
+  "claude_cli": "claude",
+  "codex_config": ".codex/config.toml",
+  "gemini_config": ".gemini/settings.json",
+  "opencode_configs": [
+   ".config/opencode/opencode.json",
+   ".config/opencode/opencode.jsonc"
+  ],
+  "opencode_dir": ".config/opencode",
+  "gemini_dir": ".gemini",
+  "codex_dir": ".codex",
+  "backup_suffix": ".dropviz-backup-",
+  "offered_marker": "connect-offered"
+ },
+ "machine_name": ""
+}

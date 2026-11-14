@@ -1,0 +1,49 @@
+{
+  "name": "kestrel",
+  "tagline": "a self-hosted photo library (invented; used only to try dropviz)",
+  "people": ["Ines Calder", "Tomas Rowe", "Priya Nandakumar"],
+  "areas": [
+    {"name": "Core", "areas": [
+      {"name": "Library", "areas": [
+        {"name": "Indexing", "features": "Scan folders, Watch for new files, Incremental re-index, Skip hidden folders, Handle renamed files, Read file timestamps, Detect duplicates by hash, Index RAW files, Recover from a crashed scan"},
+        {"name": "Thumbnails", "features": "Small grid thumbnails, Large preview size, Video poster frames, Rotate by orientation tag, Cache eviction, Rebuild on demand, Progressive loading, Colour profile handling, Animated previews"},
+        {"name": "Metadata", "features": "Read camera info, Read GPS position, Edit title and caption, Keyword tags, Star ratings, Colour labels, Batch edit tags, Write sidecar files, Import legacy tags"}]},
+      {"name": "Import", "areas": [
+        {"name": "Sources", "features": "Import from a folder, Import from a camera card, Import from a phone, Import from a ZIP archive, Import from another library, Scheduled imports, Pause and resume import, Import progress view"},
+        {"name": "Dedupe", "features": "Exact duplicate finder, Near duplicate finder, Burst photo grouping, Merge duplicate records, Keep best quality, Review queue, Undo a merge, Duplicate report"}]},
+      {"name": "Search", "planned": 34, "areas": [
+        {"name": "Query", "features": "Search by keyword, Search by date range, Search by camera, Search by place, Combine filters, Save a search, Recent searches, Search suggestions, Fast result paging"},
+        {"name": "Faces", "features": "Detect faces, Group similar faces, Name a person, Merge two people, Hide a person, Face thumbnails"}]}]},
+    {"name": "Client", "areas": [
+      {"name": "Viewer", "areas": [
+        {"name": "Gestures", "features": "Pinch to zoom, Double tap to zoom, Swipe between photos, Drag to pan, Long press menu, Two finger rotate, Edge swipe back, Keyboard shortcuts"},
+        {"name": "Slideshow", "features": "Start a slideshow, Choose transition, Set slide timing, Add background music, Loop and shuffle, Cast to a TV, Slideshow of an album"},
+        {"name": "Display", "features": "Fit to screen, Actual size, Dark mode, Large text option, Show info panel, Show histogram, Full screen mode, Remember last position"}]},
+      {"name": "Editor", "areas": [
+        {"name": "Adjust", "features": "Crop and straighten, Brightness, Contrast, Saturation, White balance, Highlights and shadows, Sharpen, Noise reduction, Red eye fix"},
+        {"name": "Filters", "features": "Black and white, Warm tone, Cool tone, Film grain, Vignette, Faded look, Filter strength slider, Custom preset"},
+        {"name": "Export", "features": "Export as JPEG, Export as PNG, Export as WebP, Resize on export, Strip location data, Add a watermark, Batch export, Export presets, Share sheet"}]}]},
+    {"name": "Server", "areas": [
+      {"name": "Accounts", "areas": [
+        {"name": "Sign-in", "features": "Email and password sign in, Passkey sign in, Sign out everywhere, Password reset by email, Session list, Remember this device, Two step verification, Lockout after failures"},
+        {"name": "Profile", "features": "Display name, Avatar picture, Language choice, Time zone, Notification settings, Storage usage view, Delete my account, Download my data"}]},
+      {"name": "Sync", "areas": [
+        {"name": "Transfer", "features": "Upload new photos, Resume interrupted upload, Download on demand, Background sync, Sync on Wi-Fi only, Bandwidth limit, Chunked transfer, Transfer queue view, Retry with backoff"},
+        {"name": "Conflicts", "features": "Detect edit conflicts, Keep both versions, Prefer newest, Manual merge screen, Conflict history, Deleted on one side, Clock skew handling"}]},
+      {"name": "Sharing", "areas": [
+        {"name": "Links", "features": "Create a share link, Link expiry date, Password on a link, Revoke a link, View count, Download toggle, Link preview card"},
+        {"name": "Albums", "features": "Create an album, Add photos to an album, Reorder album photos, Invite someone to an album, Shared album comments, Album cover choice, Leave a shared album, Album activity feed"}]}]},
+    {"name": "Web", "areas": [
+      {"name": "Gallery", "areas": [
+        {"name": "Browse", "features": "Timeline view, Map view, People view, Album grid, Infinite scroll, Jump to date, Select many photos, Responsive layout, Keyboard navigation"},
+        {"name": "Upload", "features": "Drag and drop upload, Paste from clipboard, Upload folder, Upload progress bar, Cancel an upload, Duplicate warning, Retry failed files"}]},
+      {"name": "Admin", "planned": 30, "areas": [
+        {"name": "Users", "features": "List users, Invite a user, Disable a user, Storage quota per user, Reset a user password, Role permissions, Audit log"},
+        {"name": "Health", "features": "Disk space panel, Queue length panel, Error log viewer, Backup status, Update available notice"}]}]}
+  ],
+  "maturity": {"Indexing": 0.95, "Thumbnails": 0.9, "Metadata": 0.8, "Sources": 0.85, "Dedupe": 0.6, "Query": 0.75, "Faces": 0.3,
+               "Gestures": 0.85, "Slideshow": 0.5, "Display": 0.8, "Adjust": 0.55, "Filters": 0.4, "Export": 0.45,
+               "Sign-in": 0.95, "Profile": 0.7, "Transfer": 0.7, "Conflicts": 0.35, "Links": 0.6, "Albums": 0.5,
+               "Browse": 0.7, "Upload": 0.6, "Users": 0.35, "Health": 0.15},
+  "start_days_ago": {"Core": 70, "Server": 63, "Client": 56, "Web": 42}
+}
