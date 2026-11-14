@@ -210,7 +210,16 @@ The same repo in four views (each answers one question):
 - With the default strict rule no tile is **done**: "done" needs a verification record (a git note written by CI, see "The honesty rule"), and this repo has none. Run `dropviz <repo> --done merged` for the git-only rule shown above.
 - The Speed view needs verification records too, so it is not shown here (every tile would read 0 per week).
 - Parsing the trailers of this 13,115-commit history takes about 5 seconds (one `git log` call).
-- It also ran on [openclaw/openclaw](https://github.com/openclaw/openclaw) (MIT; 2,794 AI co-author trailers in 128,567 commits), but its history is too large to replay in minutes here, so no replay is shown.
+
+### Example 2: a much larger history
+
+[openclaw/openclaw](https://github.com/openclaw/openclaw) (MIT; 128,588 commits on the default branch, 242 features drafted from the folders) rendered in about 8.5 minutes on a laptop from a no-checkout clone: 37 s to read the repo, 14 s for the trailers, the rest the page renders. 1,432 commits name a model (32 different names; most co-author lines in this repo are people, who are never counted). With this many commits the Models view counts changed **files** instead of lines (reading every diff would take minutes; the legend says so).
+
+![Replay of the OpenClaw history in the Models view, 12 seconds, one year](docs/example-openclaw.gif)
+
+*12 seconds, one year of history (Models view, [MP4](docs/example-openclaw.mp4)). Bands = share of changed files per model, from commit trailers; not measured, tokens unknown.*
+
+![The OpenClaw map in the Models view](docs/screenshots/oc-models.png)
 
 ## Status of this project
 
@@ -360,4 +369,13 @@ dropviz https://github.com/storytold/photocraft      # 역사만 받아 캐시 �
 - 기본 엄격 규칙에서는 **됨**인 타일이 없습니다. "됨"에는 검증 기록(CI 가 적는 git note, 「정직 규칙」 참고)이 필요한데 이 저장소엔 없습니다. 위 화면의 git 만 쓰는 규칙은 `dropviz <저장소> --done merged` 입니다.
 - 속도 화면도 검증 기록이 필요해서(모든 타일이 주당 0) 여기에는 싣지 않았습니다.
 - 커밋 13,115개짜리 역사의 꼬리말을 읽는 데 약 5초 걸립니다(`git log` 한 번).
-- [openclaw/openclaw](https://github.com/openclaw/openclaw) (MIT, 커밋 128,567개 중 AI 공동 작성자 표시 2,794개)에도 돌려 보았지만 역사가 너무 커서 몇 분 안에 다시 보기를 만들 수 없어 영상은 싣지 않았습니다.
+
+### 예제 2: 훨씬 큰 역사
+
+[openclaw/openclaw](https://github.com/openclaw/openclaw) (MIT, 기본 브랜치 커밋 128,588개, 폴더로 기능 242개 초안)는 체크아웃 없는 복제본으로 노트북에서 약 8분 30초 만에 그려졌습니다: 저장소 읽기 37초, 꼬리말 14초, 나머지는 화면 그리기입니다. 커밋 1,432개가 모델 이름을 적었고(서로 다른 이름 32개, 이 저장소의 공동 작성자 줄 대부분은 사람이며 사람은 세지 않습니다), 커밋이 이렇게 많으면 모델 화면은 바뀐 줄 대신 바뀐 **파일** 수로 셉니다(모든 diff 를 읽으면 몇 분이 걸려서이며 범례에 적힙니다).
+
+![OpenClaw 역사를 모델 화면으로 다시 보기, 12초, 1년치](docs/example-openclaw.gif)
+
+*12초, 1년치 역사(모델 화면, [MP4](docs/example-openclaw.mp4)). 띠 = 모델별 바뀐 파일 비율, 커밋 꼬리말에서 읽은 값(측정값 아님, 토큰은 모름).*
+
+![OpenClaw 지도, 모델 화면](docs/screenshots/oc-models.png)

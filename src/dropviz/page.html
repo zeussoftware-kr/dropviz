@@ -208,7 +208,7 @@ function chart(p,ser){const W=300,H=60,pts=ser.filter(x=>x.cumulative!==null),mx
 const dstr=t=>t?new Date(t*1000).toISOString().slice(0,10):"?";
 function trailLines(p,ents,filterable){const tot=Object.values(ents).reduce((a,e)=>a+e.lines,0)||1;
  Object.keys(ents).sort((a,b)=>ents[b].lines-ents[a].lines).forEach(k=>{const e=ents[k];const r=el("div","row"+(filterable?" clk":""));r.appendChild(el("span",k===S.model?"live":"",k));
-  r.appendChild(el("span","mut",T("page.trailer_line",{commits:nf(e.commits),lines:nf(Math.round(e.lines)),first:dstr(e.first),last:dstr(e.last)})));
+  r.appendChild(el("span","mut",T(S.trail&&S.trail.unit==="files"?"page.trailer_line_files":"page.trailer_line",{commits:nf(e.commits),lines:nf(Math.round(e.lines)),first:dstr(e.first),last:dstr(e.last)})));
   if(filterable)r.onclick=()=>{S.model=S.model===k?"":k;paintPane();refresh(false)};p.appendChild(r);
   const b=el("div","bar");const i=el("i");i.style.width=(100*e.lines/tot)+"%";b.appendChild(i);p.appendChild(b)})}
 function paneModels(p){const tr=S.trail;p.appendChild(el("h4","",T("page.trailer_h")));

@@ -22,7 +22,7 @@ Names go through a small table (`trailer.models` in `src/dropviz/defaults.json`)
 | `GPT-5.1 Codex`, `Assisted-by: Codex:gpt-5.1-codex` | `GPT-5.1 Codex` |
 | `Gemini 2.5 Pro`, `Qwen3-Coder`, `Copilot`, `Cursor`, `Devin` ... | the same words |
 
-Counting: a commit counts once for each model named on it, and its changed lines (added + deleted, from `git log --numstat`) are shared equally between those models, so shares add up. A commit that touches several features counts in each of them; an area counts a commit once. The first and last dates are commit dates. Only commits on the default branch are read, in one `git log` call (about 5 s for 13,000 commits).
+Counting: a commit counts once for each model named on it, and its changed lines (added + deleted, from `git log --numstat`) are shared equally between those models, so shares add up. A commit that touches several features counts in each of them; an area counts a commit once. The first and last dates are commit dates. Only commits on the default branch are read, in one `git log` call (about 5 s for 13,000 commits). When more than 8,000 commits name a model, reading every diff takes minutes (283 s for a 128k-commit repo, against 14 s for file names only), so the count switches to changed **files** (one per file) and the legend says "changed files".
 
 These numbers come from what people wrote into commit messages. They are not measured. **Tokens stay unknown (`?`)** unless local AI-tool records exist on your computer; the Models tab shows the two sources apart, "Models named in commit trailers" and "Measured locally".
 
@@ -56,7 +56,7 @@ A feature that no commit has touched yet is not drawn in the replay: its slot st
 
 **이름만** 둡니다. 꼬리말의 이메일 주소는 버리며 화면·API·DropViz 가 쓰는 파일 어디에도 나오지 않습니다. 이름은 작은 표(`src/dropviz/defaults.json` 의 `trailer.models`)를 거치고, 표에 없는 이름은 적힌 그대로 둡니다.
 
-세는 법: 한 커밋은 거기 적힌 모델마다 한 번 세고, 바뀐 줄(`git log --numstat` 의 더한 줄 + 지운 줄)은 그 모델들이 똑같이 나눠 가집니다. 여러 기능에 닿은 커밋은 기능마다 세고, 영역은 한 번만 셉니다. 처음·마지막 날짜는 커밋 날짜입니다. 기본 브랜치만, `git log` 한 번으로 읽습니다(커밋 13,000개에 약 5초).
+세는 법: 한 커밋은 거기 적힌 모델마다 한 번 세고, 바뀐 줄(`git log --numstat` 의 더한 줄 + 지운 줄)은 그 모델들이 똑같이 나눠 가집니다. 여러 기능에 닿은 커밋은 기능마다 세고, 영역은 한 번만 셉니다. 처음·마지막 날짜는 커밋 날짜입니다. 기본 브랜치만, `git log` 한 번으로 읽습니다(커밋 13,000개에 약 5초). 모델 이름이 적힌 커밋이 8,000개를 넘으면 diff 를 모두 읽는 데 몇 분이 걸려(커밋 128k개짜리 저장소에서 283초, 파일 이름만 읽으면 14초) 바뀐 **파일** 수(파일당 1)로 세고 범례에 「바뀐 파일」이라고 적습니다.
 
 이 값은 사람이 커밋 메시지에 적은 것이지 측정한 값이 아닙니다. **토큰은 모름(`?`)** 으로 둡니다(내 컴퓨터에 AI 도구 기록이 있을 때만 측정값이 나옴). 모델 탭은 두 출처를 따로 보입니다: 「커밋 꼬리말에 적힌 모델」과 「이 컴퓨터에서 측정」.
 

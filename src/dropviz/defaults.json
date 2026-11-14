@@ -428,7 +428,8 @@
   "unnamed_label": "no model named",
   "other_label": "others",
   "max_legend": 8,
-  "max_models_ui": 40
+  "max_models_ui": 40,
+  "max_numstat_commits": 8000
  },
  "done_rules": [
   "strict",

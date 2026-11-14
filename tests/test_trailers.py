@@ -118,6 +118,19 @@ class Fixture(unittest.TestCase):
         # tokens are never invented
         self.assertNotIn("tokens", json.dumps({k: v for k, v in self.tr.items() if k != "rows"}))
 
+    def test_huge_history_counts_files_not_lines(self):
+        old = trailers.T["max_numstat_commits"]
+        trailers.T["max_numstat_commits"] = 2
+        try:
+            tr = trailers.summarize(self.repo, self.state)
+        finally:
+            trailers.T["max_numstat_commits"] = old
+        self.assertEqual(tr["unit"], "files")
+        self.assertEqual(self.tr["unit"], "lines")
+        self.assertEqual(tr["features"]["beta"]["GPT-5.1 Codex"]["lines"], 1.5)   # one file per commit; the two-model commit shares it
+        lay = treemap.layout(self.state, 900, 500, "models", ctx=dict(web_ctx(self.repo, self.state), trailers=dict(tr, colors=trailers.colors(tr))))
+        self.assertTrue(any("files" in x["label"] for x in lay["legend"]))
+
     def test_replay_models_are_cut_at_the_day(self):
         early = trailers.summarize(self.repo, self.state, until=timelapse._day_end("2026-01-31"), rows=self.tr["rows"])
         self.assertNotIn("beta", early["features"])

@@ -74,7 +74,7 @@ class Cache:
 def trailer_ctx(cache, st, until=None):
     tr = cache.trailers()
     if until is not None:
-        tr = trailers.summarize(cache.root, st, until, rows=tr["rows"])
+        tr = trailers.summarize(cache.root, st, until, rows=tr["rows"], events=tr["events"])
     return dict(tr, colors=trailers.colors(tr))
 
 
@@ -165,7 +165,7 @@ def make_handler(root):
                 self._json(cache.tokens())
             elif path == "/api/trailers":
                 tr = cache.trailers()
-                self._json({k: tr[k] for k in ("by_model", "features", "areas", "commits_total", "commits_with_model")})
+                self._json({k: tr[k] for k in ("by_model", "features", "areas", "commits_total", "commits_with_model", "unit")})
             elif path == "/api/live":
                 self._json(cache.live())
             elif path == "/api/timelapse":

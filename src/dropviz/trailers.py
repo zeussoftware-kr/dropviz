@@ -72,11 +72,19 @@ def models_in_message(body):
     return found
 
 
-def collect(root, default):
-    """[(sha, commit time, [models], {path: changed lines})] for commits of the default branch that name a model,
-    newest first. One git call."""
-    out = core.git(root, "log", default, "-i", "-E", "--grep=" + T["grep"], "--numstat", "--no-renames",
-                   "--format=%x01%H%x02%ct%x02%B%x03", check=False)
+def unit(root, default):
+    """'lines' normally; 'files' when so many commits name a model that reading every diff would take minutes
+    (numstat needs the file contents: 283 s for 21,574 such commits of a 128k-commit repo, against 14 s for names only)."""
+    n = core.git(root, "rev-list", "--count", default, "-i", "-E", "--grep=" + T["grep"], check=False).strip()
+    return "files" if n.isdigit() and int(n) > T["max_numstat_commits"] else "lines"
+
+
+def collect(root, default, by=None):
+    """[(sha, commit time, [models], {path: changed lines or 1 per changed file})] for commits of the default branch
+    that name a model, newest first. One git call. `by` = 'lines' or 'files' (see `unit`)."""
+    by = by or unit(root, default)
+    out = core.git(root, "log", default, "-i", "-E", "--grep=" + T["grep"], "--numstat" if by == "lines" else "--name-only",
+                   "--no-renames", "--format=%x01%H%x02%ct%x02%B%x03", check=False)
     rows = []
     for rec in out.split("\x01")[1:]:
         head, _, stats = rec.partition("\x03")
@@ -86,6 +94,10 @@ def collect(root, default):
             continue
         files = {}
         for line in stats.split("\n"):
+            if by == "files":
+                if line.strip():
+                    files[line] = 1
+                continue
             parts = line.split("\t")
             if len(parts) == 3:
                 a, d, path = parts
@@ -105,29 +117,48 @@ def _add(e, ct, lines):
     e["last"] = ct if e["last"] is None else max(e["last"], ct)
 
 
-def summarize(root, state, until=None, rows=None):
+def _entries(events, until=None):
+    """{model: entry} from {model: [(commit time, lines)]}, only events up to `until`."""
+    out = {}
+    for m, evs in events.items():
+        for ct, lines in evs:
+            if until is None or ct <= until:
+                _add(out.setdefault(m, _entry()), ct, lines)
+    return out
+
+
+def summarize(root, state, until=None, rows=None, events=None):
     """-> {"by_model": {model: entry}, "features": {id: {model: entry}}, "areas": {area name: {model: entry}},
-    "commits_total": n, "commits_with_model": n, "rows": rows}. Entry = {commits, lines, first, last} (times in
-    epoch seconds). `until` limits to commits up to that time (the replay)."""
-    rows = collect(root, state["default_branch"]) if rows is None else rows
-    use = [r for r in rows if until is None or r[1] <= until]
-    feats = state["features"]
-    buckets = core._bucket([(r[0], r[1], "", "", list(r[3])) for r in use], [f["paths"] for f in feats])
-    by_row = {r[0]: r for r in use}
-    out_f, by_model, seen = {}, {}, set()
-    for f, bucket in zip(feats, buckets):
-        hit = core._matcher(f["paths"])
-        acc = {}
-        for b in bucket:
-            sha, ct, ms, files = by_row[b[0]]
-            lines = sum(n for p, n in files.items() if hit(p)) / float(len(ms))
-            for m in ms:
-                _add(acc.setdefault(m, _entry()), ct, lines)
-        if acc:
-            out_f[f["id"]] = acc
-    for r in use:
-        for m in r[2]:
-            _add(by_model.setdefault(m, _entry()), r[1], sum(r[3].values()) / float(len(r[2])))
+    "commits_total": n, "commits_with_model": n, "rows": rows, "events": events}. Entry = {commits, lines, first,
+    last} (times in epoch seconds). `until` limits to commits up to that time (the replay); pass the `rows` and
+    `events` of an earlier call and a cut costs almost nothing (no git, no file matching)."""
+    by = unit(root, state["default_branch"]) if rows is None and events is None else None
+    rows = collect(root, state["default_branch"], by) if rows is None else rows
+    if events is None:
+        feats = state["features"]
+        buckets = core._bucket([(r[0], r[1], "", "", list(r[3])) for r in rows], [f["paths"] for f in feats])
+        by_row = {r[0]: r for r in rows}
+        fev, mev = {}, {}
+        for f, bucket in zip(feats, buckets):
+            hit = core._matcher(f["paths"])
+            acc = {}
+            for b in bucket:
+                sha, ct, ms, files = by_row[b[0]]
+                lines = sum(n for p, n in files.items() if hit(p)) / float(len(ms))
+                for m in ms:
+                    acc.setdefault(m, []).append((ct, lines))
+            if acc:
+                fev[f["id"]] = acc
+        for r in rows:
+            for m in r[2]:
+                mev.setdefault(m, []).append((r[1], sum(r[3].values()) / float(len(r[2]))))
+        events = {"features": fev, "models": mev, "unit": by or "lines"}
+    out_f = {}
+    for fid, acc in events["features"].items():
+        e = _entries(acc, until)
+        if e:
+            out_f[fid] = e
+    by_model = _entries(events["models"], until)
     areas = {}
 
     def walk(nodes):
@@ -153,7 +184,8 @@ def summarize(root, state, until=None, rows=None):
     walk(state["areas"])
     total = len(core.git(root, "rev-list", state["default_branch"], check=False).split()) if until is None else None
     return {"by_model": by_model, "features": out_f, "areas": areas, "commits_total": total,
-            "commits_with_model": len(use), "rows": rows}
+            "commits_with_model": sum(1 for r in rows if until is None or r[1] <= until), "rows": rows, "events": events,
+            "unit": events.get("unit", "lines")}
 
 
 def colors(summary):

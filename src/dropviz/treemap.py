@@ -293,7 +293,7 @@ def legend(view, lang, size_by, ctx=None):
         items = [{"fill": tr["colors"][m], "label": m} for m in top[:trailers.T["max_legend"]]]
         if len(top) > trailers.T["max_legend"]:
             items.append({"fill": VC["models_other"], "label": trailers.T["other_label"]})
-        items += [{"fill": IDLE, "label": t(lang, "models_none")}, {"fill": "", "label": t(lang, "models_src")}]
+        items += [{"fill": IDLE, "label": t(lang, "models_none")}, {"fill": "", "label": t(lang, "models_src" if tr.get("unit", "lines") == "lines" else "models_src_files")}]
     else:
         items = P((VC["attention"], "att"), (IDLE, "att_none"))
     if view == "progress":
