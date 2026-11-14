@@ -204,7 +204,7 @@ The same repo in four views (each answers one question):
 | ![Now view](docs/screenshots/pc-now.png) | ![Attention view](docs/screenshots/pc-attention.png) |
 | **Now: where is work open?** Blue = work on a branch that is not merged yet. | **Attention: where did the effort go?** Size and colour follow how much each folder was touched. |
 
-- DropViz drafted 62 features from the folders and the README headings.
+- DropViz drafted 49 features from the folders. README headings are not drafted as features unless one names a code folder (then it gets that folder's paths); sections like Security, Downloads or License are never drafted.
 - 5,056 of the 13,115 commits on the default branch name a model in a trailer (21 different names). One model, `Claude Opus 5.5`, accounts for 90% of the changed lines and 4,348 commits; the rest is spread over smaller shares. Counting rules and the name table: [docs/TRAILERS.md](docs/TRAILERS.md). These are names written into commits, not measurements.
 - Tokens show as "?" because token counts come only from local AI-tool records on your computer, and a repo you only cloned has none.
 - With the default strict rule no tile is **done**: "done" needs a verification record (a git note written by CI, see "The honesty rule"), and this repo has none. Run `dropviz <repo> --done merged` for the git-only rule shown above.
@@ -354,7 +354,7 @@ dropviz https://github.com/storytold/photocraft      # 역사만 받아 캐시 �
 | ![지금 화면](docs/screenshots/pc-now.png) | ![관심 화면](docs/screenshots/pc-attention.png) |
 | **지금: 어디에 열린 작업이 있나?** 파랑 = 아직 병합 안 된 가지의 작업. | **관심: 힘이 어디에 들어갔나?** 크기와 색이 폴더를 얼마나 만졌는지를 따릅니다. |
 
-- 폴더와 README 제목으로 기능 62개 초안을 만들었습니다.
+- 폴더로 기능 49개 초안을 만들었습니다. README 제목은 코드 폴더 이름을 말할 때만(그 폴더 경로를 붙여) 기능이 되고, 보안·다운로드·라이선스 같은 절은 기능으로 만들지 않습니다.
 - 기본 브랜치 커밋 13,115개 중 5,056개가 꼬리말에 모델 이름을 적었습니다(서로 다른 이름 21개). `Claude Opus 5.5` 하나가 바뀐 줄의 90%, 커밋 4,348개이고 나머지는 작은 비율로 나뉩니다. 세는 법과 이름 표: [docs/TRAILERS.md](docs/TRAILERS.md). 커밋에 적힌 이름이며 측정값이 아닙니다.
 - 토큰은 "?" 입니다. 토큰은 내 컴퓨터의 AI 도구 기록에서만 읽는데 내려받기만 한 저장소에는 없기 때문입니다.
 - 기본 엄격 규칙에서는 **됨**인 타일이 없습니다. "됨"에는 검증 기록(CI 가 적는 git note, 「정직 규칙」 참고)이 필요한데 이 저장소엔 없습니다. 위 화면의 git 만 쓰는 규칙은 `dropviz <저장소> --done merged` 입니다.

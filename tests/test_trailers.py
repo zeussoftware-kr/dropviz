@@ -234,6 +234,41 @@ class DoneRules(unittest.TestCase):
         self.assertIn("no GitHub origin", st["features"][0]["why"][0])
 
 
+class Drafter(unittest.TestCase):
+    HEADINGS = ["Features", "Everything in the box", "Get started", "Security", "Downloads", "Star history",
+                "License and credits", "Community packages", "Documentation", "Install", "Contributing"]
+
+    def repo(self, code=True, extra=""):
+        d = tempfile.mkdtemp(prefix="dropviz-draft-")
+        sh(d, "init", "-q", "-b", "main")
+        text = "# Demo\n\n" + "".join("## %s\ntext\n\n" % h for h in self.HEADINGS) + extra
+        write(d, "README.md", text)
+        if code:
+            write(d, "crates/io/a.rs", "x\n")
+            write(d, "crates/ui/a.rs", "x\n")
+            write(d, "tools/t.py", "x\n")
+        sh(d, "add", "-A")
+        sh(d, "commit", "-q", "-m", "init")
+        return d
+
+    def test_boilerplate_headings_are_not_features(self):
+        ids = [f["id"] for f in core.draft_features(self.repo())]
+        self.assertEqual([i for i in ids if i.startswith("readme-")], [])
+        self.assertIn("crates-io", ids)
+
+    def test_heading_that_names_a_code_folder_gets_its_paths(self):
+        fs = core.draft_features(self.repo(extra="## The `crates/io` layer\ntext\n\n## Tools\ntext\n\n## Security\ntext\n"))
+        r = {f["id"]: f for f in fs if f["id"].startswith("readme-")}
+        self.assertEqual(sorted(r), ["readme-the-crates-io-layer", "readme-tools"])
+        self.assertEqual(r["readme-tools"]["paths"], ["tools/"])
+
+    def test_a_repo_without_code_folders_keeps_its_non_boilerplate_headings(self):
+        ids = [f["id"] for f in core.draft_features(self.repo(code=False, extra="## Architecture\ntext\n"))]
+        self.assertIn("readme-architecture", ids)
+        self.assertNotIn("readme-security", ids)
+        self.assertNotIn("readme-downloads", ids)
+
+
 class Speed(unittest.TestCase):
     def test_many_commits(self):
         """3,000 trailer commits through one git call; the time is printed (the 13k-commit repo is measured by hand)."""

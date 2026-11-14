@@ -71,7 +71,7 @@ class RepoTests(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         cfg = core.load_config(self.repo)
         ids = [f["id"] for f in cfg["features"]]
-        self.assertEqual(ids, ["app", "lib", "readme-alpha", "readme-beta"])
+        self.assertEqual(ids, ["app", "lib"])  # headings that name no code folder are not drafted
         self.assertTrue(all(f["status"] == "unknown" for f in cfg["features"]))
         self.assertTrue(os.path.isfile(os.path.join(self.repo, ".dropviz", ".gitignore")))
         self.assertEqual(sh(self.repo, "rev-parse", "HEAD"), self.head_before)
@@ -84,7 +84,6 @@ class RepoTests(unittest.TestCase):
         self.assertNotEqual(feat(s, "app")["status"], "done")
         self.assertEqual(feat(s, "app")["status"], "unknown")
         self.assertEqual(feat(s, "lib")["status"], "in-progress")  # unmerged codex/ branch
-        self.assertEqual(feat(s, "readme-alpha")["status"], "unknown")
         # a report never makes it done
         core.claim(self.repo, "app", "s1")
         core.report(self.repo, "app", "s1", "finished")
@@ -133,7 +132,7 @@ class RepoTests(unittest.TestCase):
             base = "http://127.0.0.1:%d" % httpd.server_address[1]
             self.assertIn("dropviz", urllib.request.urlopen(base + "/").read().decode())
             st = json.loads(urllib.request.urlopen(base + "/api/state").read())
-            self.assertEqual(st["counts"]["total"], 4)
+            self.assertEqual(st["counts"]["total"], 2)
             req = urllib.request.Request(base + "/", headers={"Host": "evil.example"})
             with self.assertRaises(urllib.error.HTTPError):
                 urllib.request.urlopen(req)
@@ -171,7 +170,7 @@ class McpRoundTrip(unittest.TestCase):
             self.assertFalse(err)
             st = json.loads(text)
             self.assertEqual(st["counts"]["done"], 0)
-            self.assertEqual(st["counts"]["total"], 4)
+            self.assertEqual(st["counts"]["total"], 2)
             err, text = tool(4, "next")
             self.assertEqual(json.loads(text)["next"]["id"], "lib")  # unmerged work first
             self.assertFalse(tool(5, "claim", {"feature": "lib", "session": "me"})[0])

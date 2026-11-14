@@ -129,6 +129,25 @@ def draft_parent_areas(areas, answer=""):
     return [(names[i], buckets[i]) for i in used] if len(used) > 1 else []
 
 
+BOILERPLATE = set(defaults.data()["readme_boilerplate"])
+
+
+def _dir_names(path):
+    """The folder prefixes of one tracked file, two levels deep at most: a/ and a/b/."""
+    parts = path.split("/")[:-1][:2]
+    return ["/".join(parts[:i + 1]) for i in range(len(parts))]
+
+
+def _heading_paths(title, dirs):
+    """Code folders a README heading clearly names: a `path/` in backticks or a whole-word folder name."""
+    out = [m.rstrip("/") for m in re.findall(r"`([\w.\-/]+)`", title) if m.rstrip("/") in dirs]
+    if not out:
+        for w in re.findall(r"[A-Za-z0-9_.\-]{3,}", title):
+            hit = [d for d in dirs if d.lower() == w.lower()]
+            out += hit[:1]
+    return [d + "/" for d in dict.fromkeys(out)][:3]
+
+
 def draft_features(root):
     feats, seen = [], set()
 
@@ -155,6 +174,7 @@ def draft_features(root):
                     "Draft from folder; write the acceptance criteria.", d)
         else:
             add(slug(d) or "area", d, [d + "/"], "Draft from top-level folder; write the acceptance criteria.", d)
+    dirs = {p for t in tracked if "/" in t for p in _dir_names(t)}
     readme = next((p for p in tracked if p.lower() == "readme.md"), None)
     if readme:
         incode = False
@@ -164,8 +184,16 @@ def draft_features(root):
             m = None if incode else re.match(r"^##\s+(.+?)\s*#*\s*$", line)
             if m:
                 title = m.group(1)
-                add("readme-" + (slug(title) or "section"), title, [],
-                    "Draft from README heading; add paths so evidence can be found.", "README")
+                words = set(re.findall(r"[a-z0-9]+", title.lower()))
+                if words & BOILERPLATE:      # install / license / security / credits ...: a document section, not a feature
+                    continue
+                paths = _heading_paths(title, dirs)
+                if paths:
+                    add("readme-" + (slug(title) or "section"), title, paths,
+                        "Draft from a README heading that names a code folder.", "README")
+                elif not dirs:               # a repo with no code folders: the headings are all there is
+                    add("readme-" + (slug(title) or "section"), title, [],
+                        "Draft from README heading; add paths so evidence can be found.", "README")
     return feats
 
 
@@ -401,6 +429,33 @@ def _log_files(root, *rng):
     return rows
 
 
+def _unmerged(root, default, branches):
+    """Everything not on the default branch in ONE log pass: ({sha: row} newest first, {branch: [shas newest first]}).
+    Replaces one `git log default..branch` per branch (hundreds of git calls on a big repo)."""
+    if not branches:
+        return {}, {}
+    rows = _log_files(root, "--branches", "--remotes", "--not", default)
+    order = {r[0]: i for i, r in enumerate(rows)}
+    par = {}
+    for line in git(root, "rev-list", "--parents", "--branches", "--remotes", "--not", default, check=False).splitlines():
+        h = line.split()
+        if h:
+            par[h[0]] = h[1:]
+    tips = git(root, "rev-parse", *branches, check=False).split()
+    reach = {}
+    if len(tips) == len(branches):
+        for b, tip in zip(branches, tips):
+            seen, stack = set(), [tip]
+            while stack:
+                c = stack.pop()
+                if c in seen or c not in par:
+                    continue
+                seen.add(c)
+                stack.extend(par[c])
+            reach[b] = sorted(seen, key=lambda c: order.get(c, 0))
+    return {r[0]: r for r in rows}, reach
+
+
 def _verify_reach(root, default, verif):
     """{commit on default: (sha of an unscoped pass at/after it, {feature: sha of a scoped pass at/after it})}.
     One pass over the default branch's ancestry graph instead of one git call per feature and note."""
@@ -472,7 +527,8 @@ def compute(root, now=None):
     reach = _verify_reach(root, default, verif) if has_default and verif else {}
     from . import metrics
     ci_fails = {k for k, v in metrics.ci_status(root).items() if v == "fail"}
-    branch_rows = [(b, _log_files(root, "%s..%s" % (default, b))) for b in branches] if has_default else []
+    un_rows, un_reach = _unmerged(root, default, branches) if has_default else ({}, {})
+    branch_rows = [(b, [un_rows[c] for c in un_reach.get(b, ())]) for b in branches] if has_default else []
 
     rule = donerule.get(cfg)
     checks = donerule.Checks(root) if rule == "merged+ci" else None
@@ -547,7 +603,7 @@ def compute(root, now=None):
         checks.save()
     lay = resolve_areas(cfg, features)
     return {"repo": root, "done_rule": rule, "name": cfg.get("name") or os.path.basename(root), "default_branch": default,
-            "features": features, "commits": commits(root, default, prefixes), "generated": time.time(),
+            "features": features, "commits": commits(root, default, prefixes, owners=un_reach), "generated": time.time(),
             "counts": _counts(features, lay), "areas": lay["areas"], "size_by": lay["size_by"],
             "work_unit": lay["work_unit"]}
 
@@ -723,15 +779,17 @@ def _counts(features, lay=None):
     return c
 
 
-def commits(root, default, prefixes, limit=200):
+def commits(root, default, prefixes, limit=200, owners=None):
     sep, rs = "\x1f", "\x1e"
     out = git(root, "log", "--branches", "--remotes", "--tags", "-n", str(limit),
               "--format=%H" + sep + "%an" + sep + "%aI" + sep + "%s" + sep + "%P" + sep + "%B" + rs, check=False)
     on_default = set(git(root, "rev-list", default, check=False).split()) if default else set()
     # which non-default branch tips contain unmerged commits
     owner = {}
-    for b in _branches(root, default):
-        for c in git(root, "rev-list", "%s..%s" % (default, b), check=False).split():
+    if owners is None:
+        owners = {b: git(root, "rev-list", "%s..%s" % (default, b), check=False).split() for b in _branches(root, default)}
+    for b, shas in owners.items():
+        for c in shas:
             owner.setdefault(c, []).append(b)
     rows = []
     for rec in out.split(rs):
