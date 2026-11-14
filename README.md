@@ -183,6 +183,10 @@ pipx install git+https://github.com/zeussoftware-kr/dropviz.git
 dropviz https://github.com/BurntSushi/ripgrep        # history only, kept in a cache folder; about 30 seconds here
 ```
 
+![Replay of the ripgrep history: tiles appear and change as the work lands](docs/example-ripgrep.gif)
+
+*About 18 seconds: the years of ripgrep history replayed day by day (the date is shown top right). Tiles change as work lands; green stays limited because the repo has no verification records. [MP4 version](docs/example-ripgrep.mp4). Still picture:*
+
 ![DropViz on the ripgrep history](docs/screenshots/example-ripgrep.png)
 
 - DropViz drafted 17 features from the folders (`crates/regex`, `crates/searcher`, `ci`, `tests`, ...). The `crates` area is the largest; no `dropviz.yaml` was written, so these are folder names, not a hand-made feature list.
@@ -311,6 +315,10 @@ macOS·Linux 에서 시험했습니다(CI 는 Windows 도 돌리며 현재 상�
 pipx install git+https://github.com/zeussoftware-kr/dropviz.git
 dropviz https://github.com/BurntSushi/ripgrep        # 역사만 받아 캐시 폴더에 둠, 여기서는 약 30초
 ```
+
+![ripgrep 역사 다시 보기: 일이 들어올 때마다 타일이 바뀝니다](docs/example-ripgrep.gif)
+
+*약 18초: ripgrep 의 몇 해 역사를 하루씩 돌립니다(날짜는 오른쪽 위). 검증 기록이 없는 저장소라서 초록은 많지 않습니다. [MP4 판](docs/example-ripgrep.mp4). 정지 그림:*
 
 ![ripgrep 역사에 돌린 DropViz](docs/screenshots/example-ripgrep.png)
 
