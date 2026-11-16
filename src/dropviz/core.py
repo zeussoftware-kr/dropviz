@@ -1,8 +1,12 @@
 """Read a local git repo (read-only) and compute honest feature status.
 
 Honesty rule: a feature is `done` only when (1) commits touching its paths are merged into the
-default branch AND (2) a verification record exists for such a commit. Anything else is
-`in-progress` (unmerged work exists) or `unknown`. A claim or a report never changes status."""
+default branch AND (2) a verification record exists for such a commit AND the feature declares nothing missing.
+The other states, each with its evidence:
+  in-progress  unmerged commits on a branch touched within `stale_branch_days` (live, recent work only)
+  partly       work is merged but it is not verified yet, or the feature's own `missing:` note says part is left
+  unknown      anything else (no work found, or only unmerged work that went quiet)
+A claim or a report never changes status."""
 import fnmatch
 import json
 import os
@@ -511,8 +515,37 @@ def _bucket(rows, matchers_paths):
     return out
 
 
+def _lines(v):
+    """A yaml note (`done:` / `missing:`) as a clean list of short strings; one string or a list both work."""
+    if v in (None, "", []):
+        return []
+    items = v if isinstance(v, list) else [v]
+    return [str(x).strip() for x in items if str(x).strip()]
+
+
+def _explain(status, ev, missing, done_notes):
+    """What is done and what is missing, in plain words, from the evidence and the feature's own notes."""
+    done, left = list(done_notes), list(missing)
+    n = ev.get("merged_commits", 0)
+    if n:
+        done.append("%d change(s) merged into the default branch" % n)
+    if ev.get("verified_commit"):
+        done.append("verified (%s)" % ev["verified_commit"])
+    elif n:
+        left.append("a verification record for the merged work")
+    if ev.get("recent_branches"):
+        left.append("merge of the open work on " + ", ".join(ev["recent_branches"]))
+    if ev.get("ci_fail"):
+        left.append("a passing CI run (the last one failed)")
+    if not n and not ev.get("recent_branches") and status == "unknown":
+        left.append("any merged work touching the declared paths")
+    return {"done": done, "missing": left}
+
+
 def compute(root, now=None):
+    now = time.time() if now is None else now
     cfg = load_config(root)
+    recent_s = defaults.get("stale_branch_days", cfg) * 86400
     default = default_branch(root, cfg.get("default_branch"))
     prefixes = cfg.get("ai_branch_prefixes") or DEFAULT_AI_PREFIXES
     if isinstance(prefixes, str):
@@ -539,6 +572,7 @@ def compute(root, now=None):
     features = []
     for fi, f in enumerate(fcfg):
         paths = fpaths[fi]
+        missing = _lines(f.get("missing"))
         why, status, evidence = [], "unknown", {"merged_commits": 0, "verified_commit": None, "verified_note": "",
                                                 "unmerged_branches": [], "commits": []}
         if not paths:
@@ -561,30 +595,46 @@ def compute(root, now=None):
                 mine = buckets[fi]
                 if mine:
                     evidence["unmerged_branches"].append({"branch": b, "commits": len(mine), "last": mine[0][1]})
-            if ok:
-                status = "done"
-                evidence["verified_commit"] = ok[:8]
-                evidence["verified_note"] = notes.get(ok, "")[:300]
-                why.append("merged into %s and verification record on %s" % (default, ok[:8]))
-            elif rule != "strict" and log and not ci_fails & {r[0] for r in log[:20]} and not any(
+            fresh = [b for b in evidence["unmerged_branches"] if now - b["last"] <= recent_s]
+            stale = [b for b in evidence["unmerged_branches"] if now - b["last"] > recent_s]
+            evidence["recent_branches"] = [b["branch"] for b in fresh]
+            days = defaults.get("stale_branch_days", cfg)
+            how, rule_why = ok, ""          # how = what makes it verified: a note, or a git-only rule (below)
+            if not ok and rule != "strict" and log and not ci_fails & {r[0] for r in log[:20]} and not any(
                     b["last"] > log[0][1] for b in evidence["unmerged_branches"]):
                 verdict, src = ("pass", "") if rule == "merged" else checks.result(log[0][0])
                 if verdict == "pass":
-                    status = "done"
-                    evidence["verified_commit"] = log[0][0][:8]
+                    how = log[0][0]
                     evidence["verified_note"] = "git-only rule %s%s" % (rule, (": checks passed (%s)" % src) if src else "")
-                    why.append("merged into %s; done by the %s rule%s" % (default, rule, (" (checks passed: %s)" % src) if src else ""))
                 else:
-                    status = "in-progress" if evidence["unmerged_branches"] else "unknown"
-                    why.append("merged into %s but checks %s (%s)" % (default, "failed" if verdict == "fail" else "not known", src))
-            elif evidence["unmerged_branches"]:
+                    rule_why = "merged into %s but checks %s (%s)" % (default, "failed" if verdict == "fail" else "not known", src)
+            if how:
+                evidence["verified_commit"] = how[:8]
+                if ok:
+                    evidence["verified_note"] = notes.get(ok, "")[:300]
+            if how and not missing:
+                status = "done"
+                if ok:
+                    why.append("merged into %s and verification record on %s" % (default, ok[:8]))
+                else:
+                    why.append("merged into %s; done by the %s rule%s" % (default, rule, (" (checks passed: %s)" % src) if src else ""))
+            elif fresh:
                 status = "in-progress"
-                why.append("unmerged commits on: " + ", ".join(
-                    b["branch"] for b in evidence["unmerged_branches"]))
+                why.append("unmerged commits touched in the last %d day(s) on: %s" % (days, ", ".join(b["branch"] for b in fresh)))
                 if log:
-                    why.append("%d merged commit(s) have no verification record" % len(log))
+                    why.append("%d merged commit(s)%s" % (len(log), "" if how else " have no verification record"))
             elif log:
-                why.append("%d commit(s) merged into %s but no verification record" % (len(log), default))
+                status = "partly"
+                if how:
+                    why.append("merged into %s and verified (%s), but the feature says something is missing" % (default, how[:8]))
+                elif rule_why:
+                    why.append(rule_why)
+                else:
+                    why.append("%d commit(s) merged into %s but no verification record" % (len(log), default))
+                if stale:
+                    why.append("unmerged work on %s has been quiet for over %d day(s)" % (", ".join(b["branch"] for b in stale), days))
+            elif stale:
+                why.append("only unmerged work exists, quiet for over %d day(s): %s" % (days, ", ".join(b["branch"] for b in stale)))
             else:
                 why.append("no commits touch these paths")
         else:
@@ -595,7 +645,8 @@ def compute(root, now=None):
             "id": f["id"], "name": f.get("name") or f["id"], "paths": paths,
             "area": str(f.get("area") or "") or defaults.get("default_area"),
             "target": f["target"] if isinstance(f.get("target"), int) else None, "weight": _num(f.get("weight")),
-            "accept": f.get("accept") or "", "status": status, "why": why, "evidence": evidence,
+            "accept": f.get("accept") or "", "done_note": _lines(f.get("done")), "missing": missing,
+            "explain": _explain(status, evidence, missing, _lines(f.get("done"))), "status": status, "why": why, "evidence": evidence,
             "claim": c, "reported_done": rep[-1] if rep else None,
             "note": ("reported done by a session; not confirmed by git evidence" if rep and status != "done" else ""),
         })
@@ -770,7 +821,7 @@ def save_settings(root, s):
 
 
 def _counts(features, lay=None):
-    c = {"done": 0, "in-progress": 0, "unknown": 0}
+    c = {"done": 0, "in-progress": 0, "partly": 0, "unknown": 0}
     for f in features:
         c[f["status"]] += 1
     c["total"] = len(features)

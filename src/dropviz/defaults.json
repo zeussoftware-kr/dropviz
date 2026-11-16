@@ -23,11 +23,13 @@
  "statuses": [
   "done",
   "in-progress",
+  "partly",
   "unknown"
  ],
  "status_colors": {
   "done": "#3fd16f",
   "in-progress": "#2a7d4f",
+  "partly": "#7d8f3a",
   "unknown": "#3b4250",
   "planned": "#232831"
  },
@@ -86,6 +88,7 @@
   "gemini/",
   "opencode/"
  ],
+ "plain_labels": false,
  "port": 8765,
  "host": "127.0.0.1",
  "default_area": "General",

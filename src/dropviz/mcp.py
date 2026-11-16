@@ -88,10 +88,10 @@ class Server:
                     "default_branch": state["default_branch"], "counts": state["counts"],
                     "rule": i18n.t(self.lang, "mcp.rule"), "areas": core.area_tree_out(state["areas"]),
                     "working_now": working, "models_tokens": models, "model_ranking": ranking, "tokens_total": total,
-                    "features": [{k: f[k] for k in ("id", "name", "area", "status", "why", "claim", "reported_done")}
+                    "features": [{k: f[k] for k in ("id", "name", "area", "status", "why", "explain", "claim", "reported_done")}
                                  for f in state["features"]]}
         if name == "next":
-            rank = {"in-progress": 0, "unknown": 1}
+            rank = {"in-progress": 0, "partly": 1, "unknown": 2}
             cands = []
             for f in state["features"]:
                 if f["status"] == "done":

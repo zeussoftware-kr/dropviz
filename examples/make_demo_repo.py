@@ -145,6 +145,8 @@ def build(now, seed):
         yaml_lines += ['  - id: "%s"' % f["id"], '    name: "%s"' % f["name"], '    area: "%s"' % f["area"],
                        '    paths: ["%s/%s.py", "tests/%s_test.py"]' % (f["dir"], f["slug"], f["slug"]),
                        '    accept: "%s works as described in the product notes."' % f["name"]]
+        if story.get(f["id"]) == "merged" and len(yaml_lines) % 11 == 0:  # a few merged features say what is still left
+            yaml_lines.append('    missing: ["Offline mode", "Bulk edit"]')
     main = st.commit("refs/heads/main", now - 71 * DAY, people[0], "Start kestrel",
                      [("README.md", "# kestrel\n\nA fictional photo library used only to try dropviz.\n"),
                       ("dropviz.yaml", "\n".join(yaml_lines) + "\n")])

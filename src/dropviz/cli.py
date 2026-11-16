@@ -168,7 +168,7 @@ def main(argv=None):
         s = core.compute(root)
         print(_t("wrote" if wrote else "kept", path=path))
         c = s["counts"]
-        print(_t("init_counts", total=c["total"], done=c["done"], prog=c["in-progress"], unk=c["unknown"], branch=s["default_branch"]))
+        print(_t("init_counts", total=c["total"], done=c["done"], prog=c["in-progress"], part=c["partly"], unk=c["unknown"], branch=s["default_branch"]))
         print(_t("init_note"))
         return 0
     if a.cmd == "metrics":

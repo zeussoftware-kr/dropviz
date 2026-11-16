@@ -45,7 +45,7 @@ def shoot_all(url, jobs, size, tmp):
     if sync_playwright:
         with sync_playwright() as p:
             b = p.chromium.launch()
-            pg = b.new_page(viewport={"width": w, "height": h}, locale=i18n.from_env())
+            pg = b.new_page(viewport={"width": w, "height": h}, locale=i18n.from_env(), color_scheme="dark")
             pg.goto(url + "#" + jobs[0][0].split("&tl=")[0])   # the view (v=...) is read from the hash at load
             pg.wait_for_selector("body[data-ready]", timeout=defaults.get("render_timeout_seconds") * 1000)
             for frag, out in jobs:

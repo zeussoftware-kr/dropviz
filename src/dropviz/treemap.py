@@ -61,7 +61,7 @@ def facts(state, ctx):
         if ub and all(now - b.get("last", now) > stale_b for b in ub):
             reasons.append("branch-idle")
             level = max(level, 3)
-        if f["status"] != "done" and ev.get("merged_commits", 0) > 0:
+        if f["status"] != "done" and ev.get("merged_commits", 0) > 0 and not ev.get("verified_commit"):
             reasons.append("unverified")
             level = max(level, 2)
         c = f.get("claim")
@@ -231,7 +231,7 @@ def find_area(state, name, nodes=None, trail=()):
     return None
 
 
-STATUS_RANK = {"done": 0, "in-progress": 1, "unknown": 2}
+STATUS_RANK = {"done": 0, "in-progress": 1, "partly": 2, "unknown": 3}
 
 
 def paint(view, f, fx, ctx, lang, area_idx, maxw, maxscore, maxspeed):
@@ -276,7 +276,7 @@ def legend(view, lang, size_by, ctx=None):
     P = lambda *a: [{"fill": f, "label": t(lang, k)} for f, k in a]
     S = STATUS_FILL
     if view == "progress":
-        items = P((S["done"], "done" if (ctx or {}).get("done_rule", "strict") == "strict" else "done_git"), (S["in-progress"], "in-progress"), (S["unknown"], "unknown"), (S["planned"], "planned"))
+        items = P((S["done"], "done" if (ctx or {}).get("done_rule", "strict") == "strict" else "done_git"), (S["in-progress"], "in-progress"), (S["partly"], "partly"), (S["unknown"], "unknown"), (S["planned"], "planned"))
     elif view == "parts":
         items = P((PALETTE[0], "parts_l"))
     elif view == "now":
@@ -305,10 +305,19 @@ def legend(view, lang, size_by, ctx=None):
     return items
 
 
-def figure(view, lang, leaves, ctx=None):
-    """Header figure of a region from its leaves [(kind, f, fx)]."""
+def plain_word(pct):
+    """A number-free word for a share of done features (0-100)."""
+    return "fig_none" if pct <= 0 else "fig_all" if pct >= 100 else "fig_few" if pct < 35 else "fig_half" if pct < 65 else "fig_most"
+
+
+def figure(view, lang, leaves, ctx=None, plain=False):
+    """Header figure of a region from its leaves [(kind, f, fx)]. plain=True: words instead of numbers."""
     n = len(leaves)
     real = [(f, x) for k, f, x in leaves if k == "f"]
+    if plain:
+        if view != "progress" or not n:
+            return ""
+        return t(lang, plain_word(100.0 * sum(1 for f, _ in real if f["status"] == "done") / n))
     if view == "models":
         feats = ((ctx or {}).get("trailers") or {}).get("features") or {}
         acc = {}
@@ -378,7 +387,7 @@ def layout(state, w, h, view="progress", focus="", ctx=None, lang="en", size_by=
             n = {"key": "f:" + f["id"], "kind": "feature", "id": f["id"], "x": lx, "y": ly, "w": lw, "h": lh,
                  "status": f["status"], "fill": fill, "stripe": STATUS_FILL[f["status"]], "tip": tip,
                  "lines": wrap2(f["name"], lw, lh), "claimed": bool(f.get("claim")),
-                 "unverified": f["status"] != "done" and f["evidence"].get("merged_commits", 0) > 0}
+                 "unverified": f["status"] != "done" and f["evidence"].get("merged_commits", 0) > 0 and not f["evidence"].get("verified_commit")}
             if view == "models" and (ctx.get("trailers") or {}).get("features", {}).get(f["id"]):
                 n["bands"] = [{"fill": ctx["trailers"]["colors"][m], "frac": round(x, 4)}
                               for m, x in trailers.shares(ctx["trailers"]["features"][f["id"]])]
@@ -392,7 +401,7 @@ def layout(state, w, h, view="progress", focus="", ctx=None, lang="en", size_by=
         hdr = (L["hdr_top"] if top else L["hdr_1"] if a["depth"] == 1 else L["hdr_n"]) if h >= (L["min_h_top"] if top else L["min_h"]) and w >= L["min_w"] else 0
         nodes.append({"key": "a:" + a["name"], "kind": "area", "depth": a["depth"], "name": a["name"], "x": x, "y": y, "w": w,
                       "h": h, "hdr": hdr, "fill": L["hdr_fill_top"] if top else _mix(L["hdr_fill"], PALETTE[root_i % len(PALETTE)], L["tint"] / (1 + L["tint_decay"] * (a["depth"] - 1))),
-                      "label": fit("%s %s" % (a["name"], figure(view, lang, lv(a), ctx)), w, L["top_char_width"] if top else None) if hdr else ""})
+                      "label": fit("%s %s" % (a["name"], figure(view, lang, lv(a), ctx, plain)), w, L["top_char_width"] if top else None) if hdr else ""})
         pad = L["pad_top"] if top else L["pad"]
         x0, y0, w0, h0 = x + pad, y + hdr + (1 if hdr else pad), w - 2 * pad, h - hdr - (pad + 1 if hdr else 2 * pad)
         items = [(k["size"], ("a", k)) for k in a["children"]]
@@ -405,6 +414,7 @@ def layout(state, w, h, view="progress", focus="", ctx=None, lang="en", size_by=
             else:
                 place_leaves(root_i, obj, cx + 1, cy + 1, cw - 2, ch - 2)
 
+    plain = bool(defaults.get("plain_labels", ctx.get("config")))
     W, H = float(w), float(h)
     crumbs = []
     if focus:
@@ -428,7 +438,7 @@ def layout(state, w, h, view="progress", focus="", ctx=None, lang="en", size_by=
     tiles = [n for n in nodes if n["kind"] in ("feature", "planned")]
     return {"w": w, "h": h, "view": view, "size_by": size_by, "rule": rule, "focus": focus, "crumbs": crumbs, "nodes": nodes,
             "legend": legend(view, lang, size_by, ctx),
-            "stats": {"features": sum(1 for n in tiles if n["kind"] == "feature"),
+            "plain": plain, "stats": {"features": sum(1 for n in tiles if n["kind"] == "feature"),
                       "planned": sum(1 for n in tiles if n["kind"] == "planned")}}
 
 

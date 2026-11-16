@@ -72,12 +72,12 @@ class Treemap(unittest.TestCase):
                 self.assertEqual(n["fill"], defaults.data()["status_colors"]["done"])
             else:
                 self.assertNotEqual(n["fill"], defaults.data()["status_colors"]["done"])
-            self.assertEqual(n["unverified"], f["status"] != "done" and f["evidence"]["merged_commits"] > 0)
+            self.assertEqual(n["unverified"], f["status"] != "done" and f["evidence"]["merged_commits"] > 0 and not f["evidence"]["verified_commit"])
         st = self.state["counts"]
-        self.assertEqual(st["done"] + st["in-progress"] + st["unknown"], st["total"])
+        self.assertEqual(st["done"] + st["in-progress"] + st["partly"] + st["unknown"], st["total"])
         self.assertGreater(st["done"], 50)
         self.assertGreater(st["in-progress"], 5)
-        self.assertGreater(sum(1 for f in feats.values() if f["status"] == "unknown" and f["evidence"]["merged_commits"]), 3)  # unverified merges exist
+        self.assertGreater(sum(1 for f in feats.values() if f["status"] == "partly" and f["evidence"]["merged_commits"]), 3)  # unverified merges exist
 
     def test_nested_areas_and_breadcrumb(self):
         lay = treemap.layout(self.state, 1400, 800, focus="Thumbnails")
@@ -360,7 +360,7 @@ class Replay(unittest.TestCase):
         self.assertEqual(tl["counts"][-1], st["counts"]["done"])
         self.assertEqual(tl["counts"][0], 0)
         last = {f["id"]: f["status"] for f in st["features"]}
-        name = {"d": "done", "p": "in-progress", "u": "unknown"}
+        name = {"d": "done", "p": "in-progress", "a": "partly", "u": "unknown"}
         self.assertEqual({k: name[v] for k, v in tl["frames"][-1]["s"].items()}, last)
         mid = timelapse.state_at(st, tl["frames"][len(tl["frames"]) // 2])
         lay = treemap.layout(mid, 1000, 600)

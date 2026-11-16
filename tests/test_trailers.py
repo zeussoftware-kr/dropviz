@@ -197,7 +197,12 @@ class DoneRules(unittest.TestCase):
         st = core.compute(repo)
         by = {f["id"]: f["status"] for f in st["features"]}
         self.assertEqual(by["alpha"], "done")
-        self.assertEqual(by["beta"], "in-progress")
+        self.assertEqual(by["beta"], "partly")  # newer work is unmerged, but it went quiet long ago: not "in progress"
+        # the same branch touched just now is live work
+        sh(repo, "checkout", "-q", "claude/beta-more")
+        commit_at(repo, "wip again", "beta/wip2.py", "w\n", time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+        sh(repo, "checkout", "-q", "main")
+        self.assertEqual({f["id"]: f["status"] for f in core.compute(repo)["features"]}["beta"], "in-progress")
 
     def test_merged_ci_with_a_fake_github(self):
         repo = fixture('done: "merged+ci"\n')

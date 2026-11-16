@@ -39,7 +39,7 @@ def main():
         pick = next(f for f in st["features"] if f["status"] == "done" and len(fm.get(f["id"], {})) >= 1 and any(c["kind"] == "ai" for c in f["evidence"]["commits"]))
         with sync_playwright() as p:
             b = p.chromium.launch()
-            pg = b.new_page(viewport={"width": 1440, "height": 860})
+            pg = b.new_page(viewport={"width": 1440, "height": 860}, color_scheme="dark")
             errors = []
             pg.on("pageerror", lambda e: errors.append(str(e)))
             pg.goto(url)
@@ -69,8 +69,11 @@ def main():
             pg.evaluate("openSettings()")
             pg.wait_for_timeout(700)
             pg.screenshot(path=out + "/settings.png")
+            pg.evaluate("document.getElementById('mset').classList.remove('on');S.tab='detail';select(%s);setTheme('light',false);paintStatic();paintPane();refresh(false)" % json.dumps(pick["id"]))
+            pg.wait_for_timeout(700)
+            pg.screenshot(path=out + "/light.png")
             pg.close()
-            ph = b.new_page(viewport={"width": 390, "height": 800}, device_scale_factor=2)
+            ph = b.new_page(viewport={"width": 390, "height": 800}, device_scale_factor=2, color_scheme="dark")
             ph.goto(url)
             ph.wait_for_selector("body[data-ready]", timeout=60000)
             ph.wait_for_timeout(1200)

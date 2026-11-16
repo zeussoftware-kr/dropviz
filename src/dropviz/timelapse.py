@@ -2,7 +2,8 @@
 
 Built locally from git only (commits, merge times, verification notes). A feature in a frame is:
   done         the newest change merged by the end of that day has a verification record dated by then
-  in-progress  work on it existed by then that was not merged yet
+  in-progress  unmerged work on it was touched in the last `stale_branch_days` days (live work only)
+  partly       work on it was merged by then but not verified yet
   unknown      otherwise
   (absent)     no commit on any branch touched its paths yet: the feature is not drawn on that day
 The last frame is replaced by the real current statuses, so the replay always ends on today's map. Claims have no
@@ -10,7 +11,7 @@ history in git, so earlier frames show no claim rings."""
 import datetime
 import os
 
-from . import core
+from . import core, defaults
 
 NOTE_REF = core.NOTES_REF
 
@@ -61,10 +62,10 @@ def _merge_times(root, default):
 
 
 def frames(root, state=None, now=None):
-    """-> {"days": ["YYYY-MM-DD", ...], "ids": [feature ids], "frames": [{"day", "s": {id: 'd'|'p'|'u'}}], "counts": [done per day]}"""
+    """-> {"days": ["YYYY-MM-DD", ...], "ids": [feature ids], "frames": [{"day", "s": {id: 'd'|'p'|'a'|'u'}}], "counts": [done per day]}"""
     state = state or core.compute(root)
     default = state["default_branch"]
-    code = {"done": "d", "in-progress": "p", "unknown": "u"}
+    code = {"done": "d", "in-progress": "p", "partly": "a", "unknown": "u"}
     rows = core._log_files(root, "--branches", "--remotes", "--tags")
     if not rows:
         return {"days": [], "ids": [], "frames": [], "counts": []}
@@ -106,6 +107,7 @@ def frames(root, state=None, now=None):
         days.append(d.isoformat())
         d += datetime.timedelta(days=1)
     per = []
+    win = defaults.get("stale_branch_days", core.load_config(root)) * 86400
     buckets = core._bucket(rows, [f["paths"] for f in state["features"]])
     note_days = {_day(v) for v in note_t.values()}
     for f, mine_rows in zip(state["features"], buckets):
@@ -114,6 +116,7 @@ def frames(root, state=None, now=None):
         bp = set(note_days)
         for c, ct, mt in mine:
             bp.add(_day(ct))
+            bp.add(_day(ct + win + 86400))  # the day its work stops counting as recent
             if mt is not None:
                 bp.add(_day(mt))
         per.append((f, mine, bp))
@@ -128,17 +131,22 @@ def frames(root, state=None, now=None):
                 done += st == "d"
                 continue
             merged = [(c, mt) for c, ct, mt in mine if mt is not None and mt <= T]
-            pending = any(ct <= T and (mt is None or mt > T) for c, ct, mt in mine)
+            pending = any(ct <= T and T - ct <= win and (mt is None or mt > T) for c, ct, mt in mine)
             st = "u"
             if merged:
                 latest = max(merged, key=lambda x: x[1])[0]
                 anyt, ft = reach.get(latest, (inf, {}))
                 if min(anyt, ft.get(f["id"], inf)) <= T:
                     st = "d"
-            if st != "d" and merged and state.get("done_rule", "strict") != "strict":
-                newest = max(mt for c, mt in merged)   # git-only rules: merged, and no newer unmerged work
-                if not any(ct <= T and ct > newest and (mt is None or mt > T) for c, ct, mt in mine):
-                    st = "d"
+            if merged:
+                if st != "d" and state.get("done_rule", "strict") != "strict":
+                    newest = max(mt for c, mt in merged)   # git-only rules: merged, and no newer unmerged work
+                    if not any(ct <= T and ct > newest and (mt is None or mt > T) for c, ct, mt in mine):
+                        st = "d"
+                if st == "d" and f.get("missing"):
+                    st = "a"                               # the feature itself says something is left
+                elif st == "u":
+                    st = "a"                               # merged, not verified
             if st != "d" and pending:
                 st = "p"
             if st == "u" and not merged:
@@ -156,7 +164,7 @@ def frames(root, state=None, now=None):
 
 def state_at(state, frame):
     """A copy of `state` whose statuses are those of one frame (everything else unchanged, claims dropped)."""
-    name = {"d": "done", "p": "in-progress", "u": "unknown"}
+    name = {"d": "done", "p": "in-progress", "a": "partly", "u": "unknown"}
     fs = []
     for f in state["features"]:
         code = frame["s"].get(f["id"], "u")

@@ -82,13 +82,13 @@ class RepoTests(unittest.TestCase):
         s = core.compute(self.repo)
         # merged but never verified -> not done
         self.assertNotEqual(feat(s, "app")["status"], "done")
-        self.assertEqual(feat(s, "app")["status"], "unknown")
+        self.assertEqual(feat(s, "app")["status"], "partly")  # merged, no verification record
         self.assertEqual(feat(s, "lib")["status"], "in-progress")  # unmerged codex/ branch
         # a report never makes it done
         core.claim(self.repo, "app", "s1")
         core.report(self.repo, "app", "s1", "finished")
         s = core.compute(self.repo)
-        self.assertEqual(feat(s, "app")["status"], "unknown")
+        self.assertEqual(feat(s, "app")["status"], "partly")
         self.assertIsNotNone(feat(s, "app")["reported_done"])
         # a verification record on a merged commit does
         merge = sh(self.repo, "rev-parse", "main")

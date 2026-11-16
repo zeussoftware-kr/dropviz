@@ -83,9 +83,15 @@ Only your repo's git history (commit messages included, for model names in trail
 - **Working now:** which tool and model is working on which feature, branch and machine, since when, last activity;
   "stalled" after 30 minutes quiet. Pulsing outline on the tiles; refreshes every 5 seconds. Only timestamps, folders, branches, model names and token counts are read, never message text.
 - **Tokens:** a total counter on top (input, output, cache read, cache write; per tool and model; a chart over time). Days with no surviving transcript are a gap ("not recorded"), never zero. Counts only, never money.
+- **Light and dark:** the sun/moon button switches the theme (it follows the system until you choose, and remembers your choice).
+- **How to use and a first-visit tour:** the `?` button explains the colours and the controls; the first time the page opens, a short bubble tour points at the map,
+  the views, the replay and the panel (once per browser; never in automated browsers unless you open `/?tour=1`). Both texts are editable in `dropviz.yaml`.
+- **Plain labels:** `plain_labels: true` replaces the percentages in area headers and the legend counts with words, for pages shown to people who do not want numbers.
 - **Languages:** English and Korean, picked from the browser (page) or `LANG` / `--lang` (command line), switchable on the page. More languages = one more file in `src/dropviz/i18n/`.
 
 ![Zoom into an area](docs/screenshots/zoom.png)
+
+![The light theme](docs/screenshots/light.png)
 
 ![One feature: why it has its status, its cards, models, verification record](docs/screenshots/feature.png)
 
@@ -99,8 +105,10 @@ On a phone: ![phone](docs/screenshots/phone.png)
 
 - **done** = the feature's commits are merged into the default branch **and** a verification record exists at or after the
   latest merged change. Nothing else is "done".
-- **in progress** = unmerged work exists on another branch.
-- **unknown** (grey) = no evidence. Every feature starts here. Merged but not yet verified stays unknown (dotted tile).
+- **in progress** = unmerged commits on a branch touched within the last 7 days (`stale_branch_days`). Only live, recent work counts; a branch that went quiet does not.
+- **partly done** (olive, dotted when it is not verified) = work is merged but is not verified yet, or the feature's own `missing:` note says part is left.
+  Open the feature and the panel lists "Done so far" and "Still missing" from the evidence and from your notes.
+- **unknown** (grey) = no evidence: nothing merged for its paths, and no recent unmerged work. Every feature starts here.
 - A claim or a report from an AI session **never** changes a status. Only git evidence does.
 - The size rule, the view and the replay change sizes and colours, never what counts as done.
 - Opt-in, for repos that keep no verification records: `--done merged` (merged, no newer unmerged work, no failing check) or `--done merged+ci` (also the commit's checks passed, read from `.dropviz/ci-status.json` or, for a GitHub `origin`, from the GitHub API: read only, public repos need no token, cached and capped). The legend always names the rule in use; the default stays strict. See [docs/TRAILERS.md](docs/TRAILERS.md).
@@ -133,6 +141,14 @@ features:
     paths: ["src/core/library/thumbnails/small-grid.py"]
     accept: "A grid of small thumbnails loads without lag."
     target: 8                  # optional: items that finish it (used for the estimate)
+    done: ["Sign-in with a passkey"]     # optional, shown under "Done so far"; never makes a feature done
+    missing: ["Password reset"]          # optional: keeps the feature at "partly done" even when verified
+plain_labels: false            # true: area headers say "about half" instead of "52%"
+tour: on                       # off: no first-visit tour (the ? button still opens How to use)
+howto: ["Your own help paragraph"]     # replaces the built-in How to use text
+tour_steps:                    # replaces the built-in tour (target: map | views | play | side | settings | search | help)
+  - target: map
+    text: "Each tile is one of our features."
 ```
 
 Status is never written here; it is computed. Every default (colours, thresholds, view order, tool name patterns, folders)
@@ -308,12 +324,15 @@ dropviz /tmp/kestrel
   알 수 없으면 "모델 모름"으로 둡니다.
 - **지금 일하는 중**: 어떤 도구·모델이 어느 기능·가지·컴퓨터에서 언제부터 일하는지(30분 넘게 조용하면 "멈춤"). 5초마다 새로 고칩니다. 대화 내용은 읽지 않습니다.
 - **토큰**: 맨 위 합계(입력·출력·캐시, 도구·모델별, 시간 그래프). 기록이 없는 날은 0 이 아니라 빈 칸입니다. 수만 셉니다.
+- **밝은/어두운 화면**: 해/달 단추로 바꿉니다(고르기 전엔 시스템을 따름). **사용법**(`?` 단추)과 처음 열 때의 말풍선 둘러보기, 숫자 대신 말로 보이는 `plain_labels: true` 도 있습니다. 글은 `dropviz.yaml` 에서 고칠 수 있습니다.
 - **언어**: 영어·한국어. 브라우저/`LANG`/`--lang` 로 고르고 화면에서 바로 바꿉니다. 언어를 더하려면 `src/dropviz/i18n/` 에 파일 하나만 더하면 됩니다.
 
 ## 정직 규칙
 
 - **done(됨)** = 그 기능의 커밋이 기본 브랜치에 병합되었고, 가장 최근 병합 변경 이후에 검증 기록이 있을 때만.
-- **in-progress** = 다른 가지에 병합 안 된 작업이 있음. **unknown(회색)** = 근거 없음(병합됐지만 검증 전이면 점무늬).
+- **in-progress** = 최근 7일(`stale_branch_days`) 안에 손댄 병합 전 커밋이 있는 가지. 조용해진 가지는 세지 않습니다.
+- **partly(올리브색, 검증 전이면 점무늬)** = 병합된 작업은 있지만 검증 전이거나, 기능에 적은 `missing:` 메모가 아직 남았다고 말함. 기능을 열면 「지금까지 된 것」·「아직 빠진 것」이 나옵니다.
+- **unknown(회색)** = 근거 없음(병합된 것도, 최근 병합 전 작업도 없음).
 - AI 세션의 「맡음」·「했음」 보고는 상태를 **바꾸지 않습니다**. git 근거만 바꿉니다. 크기 기준·화면·다시 보기도 상태를 바꾸지 않습니다.
 - 선택 사항(검증 기록을 두지 않는 저장소용): `--done merged`(병합, 더 새로운 미병합 작업 없음, 실패한 검사 없음) 또는 `--done merged+ci`(그 커밋의 검사 통과까지; `.dropviz/ci-status.json` 이나 GitHub `origin` 이면 GitHub API 를 읽기만, 공개 저장소는 토큰 불필요, 저장·횟수 제한). 범례에 쓰는 규칙이 늘 적히며 기본은 엄격 규칙입니다. [docs/TRAILERS.md](docs/TRAILERS.md).
 

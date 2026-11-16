@@ -156,7 +156,8 @@ def make_handler(root):
             elif path == "/api/i18n":
                 self._json({"lang": lang, "catalogue": i18n.catalogue(lang), "languages": i18n.languages(),
                             "config": {"views": list(treemap.VIEWS), "refresh": defaults.get("refresh_seconds", cfg),
-                                       "fps": defaults.get("timelapse_fps", cfg)}})
+                                       "fps": defaults.get("timelapse_fps", cfg),
+                                       "plain_labels": bool(defaults.get("plain_labels", cfg)), "tour": _tour_cfg(cfg)}})
             elif path == "/api/state":
                 self._json(cache.state())
             elif path == "/api/metrics":
@@ -220,6 +221,16 @@ def make_handler(root):
             except ValueError as e:
                 self._json({"error": str(e)}, 400)
     return H
+
+
+def _tour_cfg(cfg):
+    """The first-visit tour and the How-to text from dropviz.yaml: `tour: off`, `tour_steps:` (list of target/text) and `howto:` (list of
+    paragraphs). Anything missing falls back to the built-in text."""
+    steps = [{"target": str(x.get("target") or "map"), "text": x.get("text")} for x in (cfg.get("tour_steps") or [])
+             if isinstance(x, dict) and x.get("text")]
+    how = cfg.get("howto") or []
+    how = [str(x) for x in (how if isinstance(how, list) else [how]) if str(x).strip()]
+    return {"auto": cfg.get("tour") not in (False, "off", "false", "no"), "steps": steps, "howto": how}
 
 
 def serve(root, port=None, open_browser=False):
